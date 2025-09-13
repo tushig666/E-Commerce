@@ -18,29 +18,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 export function CartSheet() {
   const { cart, removeFromCart, updateQuantity, cartCount, cartTotal, isCartMounted } = useCart();
-  const [hasScrolled, setHasScrolled] = useState(false);
-  const pathname = usePathname();
-  const isHomePage = pathname === '/';
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setHasScrolled(window.scrollY > 20);
-    };
-    if (isHomePage) {
-      window.addEventListener('scroll', handleScroll);
-    }
-    return () => {
-      if (isHomePage) {
-        window.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, [isHomePage]);
-
 
   const getImageUrl = (imageId: string) => {
     const image = PlaceHolderImages.find(img => img.id === imageId);
@@ -50,7 +30,7 @@ export function CartSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className={cn("relative", hasScrolled || !isHomePage ? "text-foreground" : "text-white")}>
+        <Button variant="ghost" size="icon" className="relative text-white">
           <ShoppingBag className="h-5 w-5" />
           {isCartMounted && cartCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
