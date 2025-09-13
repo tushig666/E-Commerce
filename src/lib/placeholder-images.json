@@ -74,6 +74,54 @@
       "imageHint": "fashion shoes"
     },
     {
+      "id": "13",
+      "description": "Linen-Blend Blazer front",
+      "imageUrl": "https://picsum.photos/seed/g1/900/1200",
+      "imageHint": "linen blazer"
+    },
+    {
+      "id": "14",
+      "description": "Linen-Blend Blazer detail",
+      "imageUrl": "https://picsum.photos/seed/g2/900/1200",
+      "imageHint": "blazer detail"
+    },
+    {
+      "id": "15",
+      "description": "A-Line Denim Skirt front",
+      "imageUrl": "https://picsum.photos/seed/h1/900/1200",
+      "imageHint": "denim skirt"
+    },
+    {
+      "id": "16",
+      "description": "A-Line Denim Skirt back",
+      "imageUrl": "https://picsum.photos/seed/h2/900/1200",
+      "imageHint": "woman street"
+    },
+    {
+      "id": "17",
+      "description": "Classic Leather Belt",
+      "imageUrl": "https://picsum.photos/seed/i1/900/1200",
+      "imageHint": "leather belt"
+    },
+    {
+      "id": "18",
+      "description": "Classic Leather Belt detail",
+      "imageUrl": "https://picsum.photos/seed/i2/900/1200",
+      "imageHint": "buckle detail"
+    },
+    {
+      "id": "19",
+      "description": "Acetate Cat-Eye Sunglasses",
+      "imageUrl": "https://picsum.photos/seed/j1/900/1200",
+      "imageHint": "cat-eye sunglasses"
+    },
+    {
+      "id": "20",
+      "description": "Acetate Cat-Eye Sunglasses on model",
+      "imageUrl": "https://picsum.photos/seed/j2/900/1200",
+      "imageHint": "woman sunglasses"
+    },
+    {
       "id": "hero",
       "description": "Hero banner image",
       "imageUrl": "https://picsum.photos/seed/fashion-hero/1800/1200",
