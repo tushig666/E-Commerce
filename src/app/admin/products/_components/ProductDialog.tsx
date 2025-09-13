@@ -27,13 +27,14 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   description: z.string().min(1, 'Description is required'),
   price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
   category: z.string().min(1, 'Category is required'),
-  images: z.any(), // We'll handle image validation manually
+  images: z.any(), // Custom validation will be used
 });
 
 type ProductFormValues = z.infer<typeof formSchema>;
@@ -41,11 +42,12 @@ type ProductFormValues = z.infer<typeof formSchema>;
 interface ProductDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: FormData) => Promise<void>;
+  onSave: (data: FormData) => Promise<{ success: boolean; error?: any; product?: Product; }>;
   product: Product | null;
 }
 
 export function ProductDialog({ isOpen, onOpenChange, onSave, product }: ProductDialogProps) {
+  const { toast } = useToast();
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -53,79 +55,70 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
       description: '',
       price: 0,
       category: '',
-      images: undefined,
     },
   });
-  const { formState: { isSubmitting }, setValue, trigger, clearErrors } = form;
 
   const [imagePreviews, setImagePreviews] = useState<Array<{url: string, file?: File}>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Effect to reset the form and state whenever the dialog opens or the product changes
   useEffect(() => {
-    // This effect now correctly resets the entire form state when the dialog opens or the product changes.
     if (isOpen) {
-        if (product) {
-            form.reset({
-                name: product.name,
-                description: product.description,
-                price: product.price,
-                category: product.category,
-            });
-            setImagePreviews(product.images.map(url => ({ url })));
-        } else {
-            form.reset({ name: '', description: '', price: 0, category: '', images: undefined });
-            setImagePreviews([]);
-        }
-        clearErrors();
-        // Always clear the file input when the dialog opens
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+      const defaultValues = product
+        ? {
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            category: product.category,
+          }
+        : { name: '', description: '', price: 0, category: '' };
+
+      form.reset(defaultValues);
+      setImagePreviews(product?.images.map(url => ({ url })) || []);
+      form.clearErrors();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-  }, [product, isOpen, form, clearErrors]);
-  
+  }, [product, isOpen, form]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    
+    if (files.length === 0) return;
+
     const newPreviews = files.map(file => ({
         url: URL.createObjectURL(file),
         file
     }));
 
     setImagePreviews(prev => [...prev, ...newPreviews]);
-    if (files.length > 0) {
-        clearErrors("images");
-    }
+    form.clearErrors("images");
   };
 
   const removeImage = (urlToRemove: string) => {
-    setImagePreviews(prev => {
-        const newPreviews = prev.filter(img => img.url !== urlToRemove);
-        // Revoke object URL to prevent memory leaks for new files
-        const removedPreview = prev.find(img => img.url === urlToRemove);
-        if (removedPreview && removedPreview.file) {
-            URL.revokeObjectURL(urlToRemove);
+    setImagePreviews(prev => prev.filter(img => {
+        if (img.url === urlToRemove && img.file) {
+            URL.revokeObjectURL(urlToRemove); // Clean up blob URL
         }
-        return newPreviews;
-    });
+        return img.url !== urlToRemove;
+    }));
   };
-  
+
   const onSubmit = async (values: ProductFormValues) => {
-    const hasImages = imagePreviews.length > 0;
-    if (!hasImages) {
-        form.setError("images", { type: "manual", message: "At least one image is required." });
-        return;
+    if (imagePreviews.length === 0) {
+      form.setError("images", { type: "manual", message: "At least one image is required." });
+      return;
     }
 
     const formData = new FormData();
-    if (product) {
+    if (product?.id) {
       formData.append('id', product.id);
     }
     formData.append('name', values.name);
     formData.append('description', values.description);
     formData.append('price', values.price.toString());
     formData.append('category', values.category);
-    
+
     imagePreviews.forEach(img => {
       if (img.file) {
         formData.append('images', img.file);
@@ -133,16 +126,28 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
         formData.append('existingImages', img.url);
       }
     });
-    
-    await onSave(formData);
+
+    const result = await onSave(formData);
+
+    if (!result.success) {
+       const error = result.error;
+       let errorMsg = 'An unknown error occurred.';
+       if (typeof error === 'string') {
+         errorMsg = error;
+       } else if (error && (error.name || error.description || error.price || error.category || error._form)) {
+         errorMsg = Object.values(error).flat().join(', ');
+       }
+        
+      toast({
+        variant: 'destructive',
+        title: `Error saving product`,
+        description: errorMsg,
+      });
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-        if (!isSubmitting) {
-            onOpenChange(open);
-        }
-    }}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
@@ -156,7 +161,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
                <FormItem>
                 <FormLabel>Images</FormLabel>
                  <FormControl>
-                   <div className="flex items-center gap-4">
+                   <>
                      <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Images
@@ -169,7 +174,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
                         onChange={handleImageChange}
                         accept="image/*"
                     />
-                   </div>
+                   </>
                 </FormControl>
                 <FormMessage>{form.formState.errors.images?.message as string}</FormMessage>
               </FormItem>
@@ -252,9 +257,9 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
             </div>
             
             <DialogFooter className="md:col-span-2">
-                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={form.formState.isSubmitting}>Cancel</Button>
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                    {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
                 </Button>
             </DialogFooter>

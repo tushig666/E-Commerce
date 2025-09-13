@@ -24,75 +24,18 @@ import { ProductDialog } from './ProductDialog';
 import { DeleteProductDialog } from './DeleteProductDialog';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { addProduct, updateProduct, deleteProduct } from '../_actions/product-actions';
+import { saveProduct, deleteProduct } from '../_actions/product-actions';
 
-type FormErrors = { [key: string]: string[] | undefined } | { _form?: string[] };
-
-interface ActionResult {
-    success: boolean;
-    product?: Product;
-    error?: FormErrors | string;
+interface ProductsDataTableProps {
+  initialProducts: Product[];
 }
 
-export function ProductsDataTable({ initialProducts }: { initialProducts: Product[] }) {
+export function ProductsDataTable({ initialProducts }: ProductsDataTableProps) {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
-  const handleSaveChanges = async (productData: FormData) => {
-    const isEditing = !!selectedProduct;
-    const action = isEditing ? updateProduct : addProduct;
-    const result: ActionResult = await action(productData);
-
-    if (result.success && result.product) {
-      const updatedProduct = result.product;
-      setProducts(prevProducts => {
-          const productExists = prevProducts.some(p => p.id === updatedProduct.id);
-          if (productExists) {
-              return prevProducts.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-          } else {
-              return [updatedProduct, ...prevProducts];
-          }
-      });
-      toast({ title: 'Success', description: `Product ${isEditing ? 'updated' : 'added'} successfully.` });
-      setIsDialogOpen(false);
-    } else {
-       const errors = result.error;
-       let errorMsg = 'An unknown error occurred.';
-       if (typeof errors === 'string') {
-         errorMsg = errors;
-       } else if (errors) {
-         // Handle both field errors and form-level errors
-         errorMsg = Object.values(errors).flat().join(', ') || 'An unknown error occurred.';
-       }
-        
-      toast({
-        variant: 'destructive',
-        title: `Error ${isEditing ? 'updating' : 'adding'} product`,
-        description: errorMsg,
-      });
-    }
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!selectedProduct) return;
-
-    const result = await deleteProduct(selectedProduct.id);
-
-    if (result.success) {
-      setProducts(products.filter(p => p.id !== selectedProduct.id));
-      toast({ title: 'Success', description: 'Product deleted successfully.' });
-      setIsDeleteDialogOpen(false);
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Error deleting product',
-        description: result.error,
-      });
-    }
-  };
 
   const handleOpenDialog = (product: Product | null) => {
     setSelectedProduct(product);
@@ -105,16 +48,49 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
   };
   
   const handleDialogClose = (open: boolean) => {
+    setIsDialogOpen(open);
     if (!open) {
-        setIsDialogOpen(false);
-        // Delay resetting the product to allow dialog to close smoothly
-        setTimeout(() => {
-            setSelectedProduct(null);
-        }, 150);
-    } else {
-        setIsDialogOpen(true);
+      // Delay resetting to allow for closing animation
+      setTimeout(() => setSelectedProduct(null), 150);
     }
-  }
+  };
+
+  const handleSaveProduct = async (formData: FormData) => {
+    const isEditing = !!formData.get('id');
+    const result = await saveProduct(formData);
+
+    if (result.success && result.product) {
+      const savedProduct = result.product;
+      setProducts(prev => {
+        if (isEditing) {
+          return prev.map(p => p.id === savedProduct.id ? savedProduct : p);
+        }
+        return [savedProduct, ...prev];
+      });
+      toast({ title: 'Success', description: `Product ${isEditing ? 'updated' : 'added'} successfully.` });
+      handleDialogClose(false);
+    }
+    // Error is handled inside the dialog via toast
+    return result;
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedProduct) return;
+
+    const result = await deleteProduct(selectedProduct.id);
+
+    if (result.success) {
+      setProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
+      toast({ title: 'Success', description: 'Product deleted successfully.' });
+      setIsDeleteDialogOpen(false);
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Error deleting product',
+        description: result.error,
+      });
+    }
+  };
 
   return (
     <>
@@ -182,7 +158,7 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       <ProductDialog
         isOpen={isDialogOpen}
         onOpenChange={handleDialogClose}
-        onSave={handleSaveChanges}
+        onSave={handleSaveProduct}
         product={selectedProduct}
       />
       
@@ -191,7 +167,6 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
         onOpenChange={(isOpen) => {
             setIsDeleteDialogOpen(isOpen);
             if (!isOpen) {
-                // Delay reset for smoother closing animation
                 setTimeout(() => setSelectedProduct(null), 150);
             }
         }}

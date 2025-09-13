@@ -6,17 +6,22 @@ import { staticProducts } from './products'; // Fallback data
 export function mapDocToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     const data = doc.data();
     if (!data) {
-        throw new Error("Document data is empty!");
+        // This case should ideally not be hit if we check exists() before calling
+        throw new Error(`Document data is empty for doc ID: ${doc.id}`);
     }
+    // Ensure timestamps are consistently converted to ISO strings
+    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString());
+    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || new Date().toISOString());
+
     return {
         id: doc.id,
         name: data.name,
         description: data.description,
         price: data.price,
-        images: data.images,
+        images: data.images || [],
         category: data.category,
-        // Convert Firestore Timestamp to ISO string for client-side consumption
-        createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+        createdAt: createdAt,
+        updatedAt: updatedAt,
     };
 }
 

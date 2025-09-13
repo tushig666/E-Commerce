@@ -3,9 +3,10 @@ export type Product = {
   name: string;
   description: string;
   price: number;
-  images: string[]; // Now holds URLs
+  images: string[]; // URLs of the images
   category: string;
-  createdAt?: string; // Should be a serializable format like ISO string for client
+  createdAt: string; // ISO 8601 string format
+  updatedAt?: string; // ISO 8601 string format
 };
 
 export type CartItem = {

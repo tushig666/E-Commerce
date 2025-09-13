@@ -18,6 +18,7 @@ const productSchema = z.object({
 async function uploadImages(images: File[]): Promise<string[]> {
   const imageUrls: string[] = [];
   for (const image of images) {
+    // This check is important, although client-side filtering should also happen.
     if (image.size === 0) continue;
     const storageRef = ref(storage, `products/${Date.now()}-${image.name}`);
     await uploadBytes(storageRef, image);
@@ -28,30 +29,32 @@ async function uploadImages(images: File[]): Promise<string[]> {
 }
 
 async function deleteImages(imageUrls: string[]) {
+    if (!imageUrls || imageUrls.length === 0) return;
+
     const deletePromises = imageUrls.map(async (url) => {
+        // A more robust check for valid Firebase Storage URLs
         if (!url || typeof url !== 'string' || !url.startsWith('https://firebasestorage.googleapis.com')) {
-            return; // Skip invalid URLs
+            console.warn(`Skipping invalid or non-firebase URL for deletion: ${url}`);
+            return;
         }
         try {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
-            // If the object does not exist, we can safely ignore the error.
-            // This prevents crashes if an image was already deleted manually or in a previous failed attempt.
+            // It's common to try deleting an image that's already gone.
+            // We log other errors but don't re-throw, to not fail the whole operation.
             if (error.code !== 'storage/object-not-found') {
-                console.error(`Failed to delete image: ${url}`, error);
-                // We don't re-throw here to allow the main operation (e.g., product deletion) to continue
-                // even if one image fails to delete.
+                console.error(`Failed to delete image at ${url}:`, error);
             }
         }
     });
 
-    // We wait for all promises to settle, but we don't want to fail the whole
-    // operation if one image deletion fails.
     await Promise.allSettled(deletePromises);
 }
 
-export async function addProduct(formData: FormData) {
+// Unified function for adding and updating
+export async function saveProduct(formData: FormData) {
+  const id = formData.get('id') as string | null;
   const rawData = Object.fromEntries(formData);
   const validation = productSchema.safeParse(rawData);
 
@@ -59,97 +62,68 @@ export async function addProduct(formData: FormData) {
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
 
-  const images = formData.getAll('images') as File[];
-  if (images.length === 0 || images.every(f => f.size === 0)) {
-      return { success: false, error: { images: ['At least one image is required.'] } };
-  }
-  
-  try {
-    const imageUrls = await uploadImages(images.filter(f => f.size > 0));
-
-    const newProductData = {
-      ...validation.data,
-      images: imageUrls,
-      createdAt: Timestamp.now(),
-    };
-
-    const docRef = await addDoc(collection(db, 'products'), newProductData);
-    
-    // Fetch the newly created document to get the full product object
-    const productSnap = await getDoc(docRef);
-    if (!productSnap.exists()) {
-        throw new Error('Failed to create and then fetch the new product.');
-    }
-    const newProduct = mapDocToProduct(productSnap);
-
-    revalidatePath('/admin/products');
-    revalidatePath('/products');
-    revalidatePath('/');
-    
-    return { success: true, product: newProduct };
-  } catch (e: any) {
-    console.error("Error in addProduct:", e);
-    return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
-  }
-}
-
-export async function updateProduct(formData: FormData) {
-  const id = formData.get('id') as string;
-  if (!id) {
-    return { success: false, error: { _form: ['Product ID is missing.'] } };
-  }
-
-  const rawData = Object.fromEntries(formData);
-  const validation = productSchema.safeParse(rawData);
-
-  if (!validation.success) {
-    return { success: false, error: validation.error.flatten().fieldErrors };
-  }
-  
   const newImageFiles = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
   const existingImageUrls = formData.getAll('existingImages').filter(f => typeof f === 'string') as string[];
 
   if (existingImageUrls.length === 0 && newImageFiles.length === 0) {
-    return { success: false, error: { images: ['At least one image is required.'] }};
+    return { success: false, error: { _form: ['At least one image is required.'] } };
   }
 
   try {
-    const productRef = doc(db, 'products', id);
-    const productSnap = await getDoc(productRef);
-    const originalProduct = productSnap.exists() ? productSnap.data() : null;
-    const originalImages = originalProduct?.images || [];
-
-    const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
-    await deleteImages(imagesToDelete);
-
-    const newImageUrls = await uploadImages(newImageFiles);
-    const finalImageUrls = [...existingImageUrls, ...newImageUrls];
-    
-    const productData = { 
-        ...validation.data, 
-        images: finalImageUrls,
-        // Preserve original creation date if it exists
-        createdAt: originalProduct?.createdAt || Timestamp.now(),
+    let finalProductId = id;
+    const productDataForDb: any = {
+      ...validation.data,
+      updatedAt: Timestamp.now(), // Add/update timestamp
     };
+    
+    // Handle image updates
+    const newImageUrls = await uploadImages(newImageFiles);
+    productDataForDb.images = [...existingImageUrls, ...newImageUrls];
 
-    // Use set with merge to create the document if it doesn't exist (e.g., editing a static product)
-    await setDoc(productRef, productData, { merge: true });
-
-    revalidatePath('/admin/products');
-    revalidatePath(`/products/${id}`);
-    revalidatePath('/products');
-    revalidatePath('/');
+    if (id) {
+        // UPDATE existing product
+        const productRef = doc(db, 'products', id);
+        const productSnap = await getDoc(productRef);
+        const originalImages = productSnap.exists() ? productSnap.data().images || [] : [];
         
-    const updatedProductSnap = await getDoc(productRef);
-    const updatedProduct = mapDocToProduct(updatedProductSnap);
+        const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
+        await deleteImages(imagesToDelete);
 
-    return { success: true, product: updatedProduct };
-  } catch (e: any)
-   {
-    console.error("Error in updateProduct:", e);
+        await updateDoc(productRef, productDataForDb);
+
+    } else {
+        // ADD new product
+        productDataForDb.createdAt = Timestamp.now();
+        const docRef = await addDoc(collection(db, 'products'), productDataForDb);
+        finalProductId = docRef.id;
+    }
+
+    if (!finalProductId) {
+        throw new Error("Could not determine product ID after save operation.");
+    }
+    
+    // Re-fetch the saved product to ensure we have the latest, properly formatted data
+    const savedProductSnap = await getDoc(doc(db, 'products', finalProductId));
+    if (!savedProductSnap.exists()) {
+        throw new Error('Failed to fetch the product after saving.');
+    }
+    const savedProduct = mapDocToProduct(savedProductSnap);
+
+    // Revalidate paths
+    revalidatePath('/admin/products');
+    revalidatePath('/products');
+    revalidatePath(`/products/${finalProductId}`);
+    revalidatePath('/');
+    
+    return { success: true, product: savedProduct };
+
+  } catch (e: any) {
+    console.error("Error in saveProduct:", e);
+    // Return a generic error message to the client
     return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
   }
 }
+
 
 export async function deleteProduct(id: string) {
   if (!id) {
@@ -161,9 +135,7 @@ export async function deleteProduct(id: string) {
 
     if (productSnap.exists()) {
       const productData = productSnap.data();
-      if (productData.images && productData.images.length > 0) {
-        await deleteImages(productData.images);
-      }
+      await deleteImages(productData.images || []);
       await deleteDoc(productRef);
     } else {
         console.warn(`Attempted to delete a product that does not exist in Firestore: ${id}`);
