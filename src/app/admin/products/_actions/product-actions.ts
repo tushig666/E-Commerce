@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import * as z from 'zod';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp, setDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Product } from '@/lib/types';
 import { mapDocToProduct } from '@/lib/firebase-service';
@@ -103,11 +103,10 @@ export async function updateProduct(formData: FormData) {
   try {
     const productRef = doc(db, 'products', id);
     const productSnap = await getDoc(productRef);
-    if (!productSnap.exists()) {
-        return { success: false, error: { _form: ['Product not found.'] } };
-    }
+    
+    const isNewProduct = !productSnap.exists();
     const originalProduct = productSnap.data();
-    const originalImages = originalProduct.images || [];
+    const originalImages = originalProduct?.images || [];
 
     const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
     await deleteImages(imagesToDelete);
@@ -115,12 +114,14 @@ export async function updateProduct(formData: FormData) {
     const newImageUrls = await uploadImages(newImageFiles);
     const finalImageUrls = [...existingImageUrls, ...newImageUrls];
     
-    const updatedData = { 
+    const productData = { 
         ...validation.data, 
         images: finalImageUrls,
-        createdAt: originalProduct.createdAt, // Preserve original timestamp
+        createdAt: originalProduct?.createdAt || Timestamp.now(), // Preserve original timestamp or create new one
     };
-    await updateDoc(productRef, updatedData);
+
+    // Use setDoc instead of updateDoc to handle both creation and update
+    await setDoc(productRef, productData, { merge: true });
 
     revalidatePath('/admin/products');
     revalidatePath(`/products/${id}`);
@@ -130,7 +131,7 @@ export async function updateProduct(formData: FormData) {
     const updatedProductSnap = await getDoc(productRef);
     const updatedProduct = mapDocToProduct(updatedProductSnap);
 
-    return { success: true, product: updatedProduct };
+    return { success: true, product: updatedProduct, isNew: isNewProduct };
   } catch (e: any)
    {
     console.error("Error in updateProduct:", e);

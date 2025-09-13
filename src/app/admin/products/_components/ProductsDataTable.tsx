@@ -29,6 +29,13 @@ import { addProduct, updateProduct, deleteProduct } from '../_actions/product-ac
 // Define a type for the form errors
 type FormErrors = { [key: string]: string[] | undefined };
 
+interface ActionResult {
+    success: boolean;
+    product?: Product;
+    isNew?: boolean;
+    error?: FormErrors | string;
+}
+
 export function ProductsDataTable({ initialProducts }: { initialProducts: Product[] }) {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -38,22 +45,31 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
 
   const handleSaveChanges = async (productData: FormData) => {
-    const action = editingProduct ? updateProduct : addProduct;
-    const result = await action(productData);
+    const isEditing = !!editingProduct;
+    const action = isEditing ? updateProduct : addProduct;
+    const result: ActionResult = await action(productData);
 
     if (result.success && result.product) {
-      if (editingProduct) {
-        setProducts(products.map(p => (p.id === result.product!.id ? result.product! : p)));
-        toast({ title: 'Success', description: 'Product updated successfully.' });
+      if (isEditing) {
+          if (result.isNew) {
+              // This was an edit of a static product, so it was created in the DB.
+              // We should add it to the top of our list, replacing the old static one.
+              setProducts([result.product, ...products.filter(p => p.id !== result.product!.id)]);
+              toast({ title: 'Success', description: 'Product created successfully.' });
+          } else {
+              // This was a standard update.
+              setProducts(products.map(p => (p.id === result.product!.id ? result.product! : p)));
+              toast({ title: 'Success', description: 'Product updated successfully.' });
+          }
       } else {
-        // Add new product to the top of the list
+        // This was a new product addition.
         setProducts([result.product, ...products]);
         toast({ title: 'Success', description: 'Product added successfully.' });
       }
       setIsDialogOpen(false);
       setEditingProduct(null);
     } else {
-       const errors = result.error as FormErrors | string;
+       const errors = result.error;
        let errorMsg = 'An unknown error occurred.';
        if (typeof errors === 'string') {
          errorMsg = errors;
