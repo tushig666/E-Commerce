@@ -9,6 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/googleai';
 import {z} from 'genkit';
 
 const StyleRecommendationsInputSchema = z.object({
@@ -33,6 +34,7 @@ const prompt = ai.definePrompt({
   name: 'styleRecommendationsPrompt',
   input: {schema: StyleRecommendationsInputSchema},
   output: {schema: StyleRecommendationsOutputSchema},
+  model: googleAI.model('gemini-1.5-flash'),
   prompt: `You are an AI fashion assistant providing style recommendations based on user browsing history.
 
   Based on the following browsing history:
