@@ -34,6 +34,7 @@ const formSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
   category: z.string().min(1, 'Category is required'),
+  images: z.any(),
 });
 
 type ProductFormValues = z.infer<typeof formSchema>;
@@ -53,11 +54,11 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
       description: '',
       price: 0,
       category: '',
+      images: [],
     },
   });
   const { formState: { isSubmitting } } = form;
 
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -70,22 +71,18 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
         category: product.category,
       });
       setImagePreviews(product.images);
-      setImageFiles([]);
     } else {
       form.reset({ name: '', description: '', price: 0, category: '' });
       setImagePreviews([]);
-      setImageFiles([]);
     }
   }, [product, form, isOpen]);
-
+  
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files);
-      setImageFiles(files);
-      
-      const previews = files.map(file => URL.createObjectURL(file));
-      setImagePreviews(previews);
-    }
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    form.setValue('images', files);
+    
+    const previews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(previews);
   };
   
   const onSubmit = async (values: ProductFormValues) => {
@@ -99,9 +96,11 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
         product.images.forEach(url => formData.append('existingImages', url));
     }
 
-    imageFiles.forEach(file => {
-      formData.append('images', file);
-    });
+    if (values.images) {
+      values.images.forEach((file: File) => {
+        formData.append('images', file);
+      });
+    }
     
     await onSave(formData);
   };
@@ -118,10 +117,15 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
             <div className="space-y-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="images" className="text-right">Images</Label>
-                    <div className="col-span-3">
-                        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <FormField
+                control={form.control}
+                name="images"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Images</FormLabel>
+                    <FormControl>
+                       <div className="flex items-center gap-4">
+                         <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="mr-2 h-4 w-4" />
                             Upload Images
                         </Button>
@@ -134,14 +138,19 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
                             onChange={handleImageChange}
                             accept="image/*"
                         />
-                    </div>
-                </div>
+                       </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
                 {imagePreviews.length > 0 && (
                     <div className="grid grid-cols-4 gap-4">
-                        <div className="col-start-2 col-span-3 grid grid-cols-3 gap-2">
+                        <div className="col-start-1 col-span-4 grid grid-cols-3 gap-2">
                         {imagePreviews.map((preview, index) => (
                             <div key={index} className="relative aspect-square w-full">
-                            <Image src={preview} alt={`Preview ${index}`} layout="fill" className="rounded-md object-cover" />
+                            <Image src={preview} alt={`Preview ${index}`} fill className="rounded-md object-cover" />
                             </div>
                         ))}
                         </div>

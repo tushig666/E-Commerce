@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import * as z from 'zod';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Product } from '@/lib/types';
 
@@ -48,7 +48,7 @@ export async function addProduct(formData: FormData) {
 
   const images = formData.getAll('images') as File[];
   if (images.length === 0 || images[0].size === 0) {
-      return { success: false, error: 'At least one image is required.' };
+      return { success: false, error: { images: ['At least one image is required.'] } };
   }
   
   try {
@@ -88,6 +88,10 @@ export async function updateProduct(formData: FormData) {
   const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
   const existingImages = formData.getAll('existingImages').filter(f => typeof f === 'string') as string[];
 
+  if (existingImages.length === 0 && newImages.length === 0) {
+    return { success: false, error: { images: ['At least one image is required.'] }};
+  }
+
   try {
     let imageUrls: string[] = existingImages;
     if (newImages.length > 0) {
@@ -115,10 +119,19 @@ export async function deleteProduct(id: string) {
     return { success: false, error: 'Product ID is missing.' };
   }
   try {
-    // Note: You might want to delete associated images from storage as well.
-    // This part is simplified. For a real app, you would get the product,
-    // get the image URLs, and delete them from Firebase Storage.
-    await deleteDoc(doc(db, 'products', id));
+    const productRef = doc(db, 'products', id);
+    const productSnap = await getDoc(productRef);
+
+    if (!productSnap.exists()) {
+      return { success: false, error: 'Product not found.' };
+    }
+
+    const productData = productSnap.data();
+    if (productData.images && productData.images.length > 0) {
+      await deleteImages(productData.images);
+    }
+    
+    await deleteDoc(productRef);
 
     revalidatePath('/admin/products');
     revalidatePath('/products');

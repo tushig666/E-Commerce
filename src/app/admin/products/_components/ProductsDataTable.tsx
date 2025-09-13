@@ -41,7 +41,7 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
     }
     const result = await action(productData);
 
-    if (result.success) {
+    if (result.success && result.product) {
       if (editingProduct) {
         setProducts(products.map(p => (p.id === result.product!.id ? result.product! : p)));
         toast({ title: 'Success', description: 'Product updated successfully.' });
@@ -52,10 +52,14 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       setIsDialogOpen(false);
       setEditingProduct(null);
     } else {
+       const errorMsg = typeof result.error === 'string' 
+        ? result.error 
+        : (result.error && Object.values(result.error as any).flat().join(', '));
+        
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: result.error,
+        description: errorMsg || 'An unknown error occurred.',
       });
     }
   };
@@ -159,7 +163,10 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       
       <ProductDialog
         isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
+        onOpenChange={(isOpen) => {
+          setIsDialogOpen(isOpen);
+          if (!isOpen) setEditingProduct(null);
+        }}
         onSave={handleSaveChanges}
         product={editingProduct}
       />
