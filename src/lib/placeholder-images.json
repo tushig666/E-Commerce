@@ -122,6 +122,54 @@
       "imageHint": "woman sunglasses"
     },
     {
+      "id": "21",
+      "description": "Wide-Leg Linen Trousers front view",
+      "imageUrl": "https://picsum.photos/seed/k1/900/1200",
+      "imageHint": "linen trousers"
+    },
+    {
+      "id": "22",
+      "description": "Wide-Leg Linen Trousers detail",
+      "imageUrl": "https://picsum.photos/seed/k2/900/1200",
+      "imageHint": "linen fabric"
+    },
+    {
+      "id": "23",
+      "description": "Cropped Tailored Trousers front view",
+      "imageUrl": "https://picsum.photos/seed/l1/900/1200",
+      "imageHint": "cropped trousers"
+    },
+    {
+      "id": "24",
+      "description": "Cropped Tailored Trousers back view",
+      "imageUrl": "https://picsum.photos/seed/l2/900/1200",
+      "imageHint": "tailored trousers"
+    },
+    {
+      "id": "25",
+      "description": "Pleated Culottes front view",
+      "imageUrl": "https://picsum.photos/seed/m1/900/1200",
+      "imageHint": "pleated culottes"
+    },
+    {
+      "id": "26",
+      "description": "Pleated Culottes in motion",
+      "imageUrl": "https://picsum.photos/seed/m2/900/1200",
+      "imageHint": "flowing fabric"
+    },
+    {
+      "id": "27",
+      "description": "High-Waisted Skinny Trousers front view",
+      "imageUrl": "https://picsum.photos/seed/n1/900/1200",
+      "imageHint": "skinny trousers"
+    },
+    {
+      "id": "28",
+      "description": "High-Waisted Skinny Trousers detail",
+      "imageUrl": "https://picsum.photos/seed/n2/900/1200",
+      "imageHint": "stretch fabric"
+    },
+    {
       "id": "hero",
       "description": "Hero banner image",
       "imageUrl": "https://picsum.photos/seed/fashion-hero/1800/1200",
