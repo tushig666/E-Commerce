@@ -11,7 +11,6 @@ export function mapDocToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     }
 
     // Convert Firestore Timestamps to ISO strings, handling cases where they might be missing.
-    // Do NOT generate a new Date() here as it causes mismatch between server and client.
     const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : null;
     const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : null;
 
@@ -35,22 +34,14 @@ export async function getProducts(): Promise<Product[]> {
 
     if (productSnapshot.empty) {
         console.warn("No products found in Firestore, returning static data.");
-        return staticProducts.map(p => ({
-            ...p,
-            createdAt: p.createdAt || new Date().toISOString(),
-            updatedAt: p.updatedAt || new Date().toISOString()
-        }));
+        return staticProducts;
     }
     
     const productList = productSnapshot.docs.map(mapDocToProduct);
     return productList;
   } catch (error) {
     console.error("Error fetching products from Firestore, returning static data: ", error);
-     return staticProducts.map(p => ({
-        ...p,
-        createdAt: p.createdAt || new Date().toISOString(),
-        updatedAt: p.updatedAt || new Date().toISOString()
-    }));
+     return staticProducts;
   }
 }
 
@@ -66,11 +57,7 @@ export async function getProduct(id: string): Promise<Product | null> {
       // Fallback to static data if not found in Firestore
       const staticProduct = staticProducts.find(p => p.id === id);
        if (staticProduct) {
-        return {
-            ...staticProduct,
-            createdAt: staticProduct.createdAt || new Date().toISOString(),
-            updatedAt: staticProduct.updatedAt || new Date().toISOString()
-        }
+        return staticProduct;
       }
       return null;
     }
@@ -78,11 +65,7 @@ export async function getProduct(id: string): Promise<Product | null> {
     console.error(`Error fetching product ${id}, returning static data: `, error);
     const staticProduct = staticProducts.find(p => p.id === id);
     if (staticProduct) {
-        return {
-            ...staticProduct,
-            createdAt: staticProduct.createdAt || new Date().toISOString(),
-            updatedAt: staticProduct.updatedAt || new Date().toISOString()
-        }
+        return staticProduct;
     }
     return null;
   }
