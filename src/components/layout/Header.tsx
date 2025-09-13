@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Heart, Menu, X } from 'lucide-react';
+import { Heart, Menu, X, User } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 import { Logo } from '@/components/icons/Logo';
@@ -11,6 +11,14 @@ import { CartSheet } from '@/components/cart/CartSheet';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 import { Separator } from '@/components/ui/separator';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -22,16 +30,7 @@ export function Header() {
   const { wishlistCount, isWishlistMounted } = useWishlist();
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [hasScrolled, setHasScrolled] = useState(false);
   
-  useEffect(() => {
-    const handleScroll = () => {
-      setHasScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <header className="sticky top-0 z-40 w-full bg-black text-white shadow-lg">
       <div className={cn(
@@ -60,18 +59,41 @@ export function Header() {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
-          {user ? (
-             <Button onClick={signOut} variant="ghost" className="hidden md:flex text-white">Log Out</Button>
-          ) : (
-            <>
-              <Button variant="ghost" asChild className="hidden md:flex text-white">
-                <Link href="/signin">Sign In</Link>
+           <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-white">
+                <User className="h-5 w-5" />
+                <span className="sr-only">User Account</span>
               </Button>
-              <Button variant="outline" asChild className="hidden md:flex bg-transparent text-white hover:bg-white hover:text-black">
-                <Link href="/signup">Sign Up</Link>
-              </Button>
-            </>
-          )}
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              {user ? (
+                <>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">My Account</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    Log out
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                   <DropdownMenuItem asChild>
+                    <Link href="/signin">Sign In</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/signup">Sign Up</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <Button variant="ghost" size="icon" asChild className="relative hidden md:flex text-white">
             <Link href="/wishlist">
@@ -120,7 +142,7 @@ export function Header() {
             </Link>
             <Separator />
             {user ? (
-              <Button onClick={() => { signOut(); setIsMobileMenuOpen(false); }} variant="ghost" className="justify-start font-headline text-3xl uppercase tracking-widest">Log Out</Button>
+              <Button onClick={() => { signOut(); setIsMobileMenuOpen(false); }} variant="ghost" className="justify-start p-0 font-headline text-3xl uppercase tracking-widest">Log Out</Button>
             ) : (
               <>
                 <Link href="/signin" className="font-headline text-3xl uppercase tracking-widest text-foreground" onClick={() => setIsMobileMenuOpen(false)}>Sign In</Link>
