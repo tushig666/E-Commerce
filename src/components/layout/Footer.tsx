@@ -3,8 +3,8 @@ import { Logo } from '@/components/icons/Logo';
 
 const footerLinks = [
   { title: "Shop", links: [{ href: "/products", label: "All" }, { href: "/#collections", label: "Collections" }] },
-  { title: "About", links: [{ href: "#", label: "Our Story" }, { href: "#", label: "Contact" }] },
-  { title: "Help", links: [{ href: "#", label: "FAQ" }, { href: "#", label: "Shipping" }, { href: "#", label: "Returns" }] },
+  { title: "About", links: [{ href: "/our-story", label: "Our Story" }, { href: "/contact", label: "Contact" }] },
+  { title: "Help", links: [{ href: "/faq", label: "FAQ" }, { href: "/shipping", label: "Shipping" }, { href: "/returns", label: "Returns" }] },
 ];
 
 export function Footer() {
