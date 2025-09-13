@@ -19,7 +19,7 @@ export default function ReturnsPage() {
         </p>
         <p>
           Final sale items are not eligible for return or exchange.
-        p>
+        </p>
       </div>
     </div>
   );
