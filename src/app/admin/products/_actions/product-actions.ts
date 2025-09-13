@@ -14,6 +14,7 @@ const productSchema = z.object({
 });
 
 async function uploadImages(images: File[]): Promise<string[]> {
+  if (!storage) return [];
   const imageUrls: string[] = [];
   for (const image of images) {
     if (image.size === 0) continue;
@@ -26,7 +27,7 @@ async function uploadImages(images: File[]): Promise<string[]> {
 }
 
 async function deleteImages(imageUrls: string[]) {
-    if (!imageUrls || imageUrls.length === 0) return;
+    if (!storage || !imageUrls || imageUrls.length === 0) return;
 
     const deletePromises = imageUrls.map(async (url) => {
         if (!url || typeof url !== 'string' || !url.startsWith('https://firebasestorage.googleapis.com')) {
@@ -40,8 +41,6 @@ async function deleteImages(imageUrls: string[]) {
             // storage/object-not-found is a common error if the image was already deleted, so we can safely ignore it.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image at ${url}:`, error);
-                // Depending on the use case, you might want to re-throw the error
-                // throw error; 
             }
         }
     });
@@ -50,6 +49,9 @@ async function deleteImages(imageUrls: string[]) {
 }
 
 export async function saveProduct(formData: FormData): Promise<{ success: boolean; error?: any; }> {
+  if (!db || !storage) {
+    return { success: false, error: { _form: ['Firebase is not configured.'] } };
+  }
   const id = formData.get('id') as string | null;
   
   const rawData: { [k: string]: any } = {};
@@ -106,12 +108,14 @@ export async function saveProduct(formData: FormData): Promise<{ success: boolea
 
   } catch (e: any) {
     console.error("Error in saveProduct:", e);
-    // Return a generic error message to the client
     return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
   }
 }
 
 export async function deleteProduct(id: string): Promise<{ success: boolean; error?: string; }> {
+  if (!db) {
+    return { success: false, error: 'Firebase is not configured.' };
+  }
   if (!id) {
     return { success: false, error: 'Product ID is missing.' };
   }
