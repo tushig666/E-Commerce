@@ -53,16 +53,17 @@ export async function getProduct(id: string): Promise<Product | null> {
     if (productSnap.exists()) {
       return mapDocToProduct(productSnap);
     } else {
-      console.warn(`Product with id ${id} not found in Firestore.`);
+      console.warn(`Product with id ${id} not found in Firestore. Falling back to static data.`);
       // Fallback to static data if not found in Firestore
       const staticProduct = staticProducts.find(p => p.id === id);
        if (staticProduct) {
         return staticProduct;
       }
+      console.warn(`Product with id ${id} also not found in static data.`);
       return null;
     }
   } catch (error) {
-    console.error(`Error fetching product ${id}, returning static data: `, error);
+    console.error(`Error fetching product ${id}, falling back to static data: `, error);
     const staticProduct = staticProducts.find(p => p.id === id);
     if (staticProduct) {
         return staticProduct;
