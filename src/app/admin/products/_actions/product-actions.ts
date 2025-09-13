@@ -31,7 +31,7 @@ async function deleteImages(imageUrls: string[]) {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
-            // storage/object-not-found-г алдаа гэж үзэхгүй, учир нь зураг аль хэдийн устгагдсан байж болно
+            // It's okay if the object doesn't exist, it might have been already deleted.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image: ${url}`, error);
             }
@@ -48,12 +48,12 @@ export async function addProduct(formData: FormData) {
   }
 
   const images = formData.getAll('images') as File[];
-  if (images.length === 0 || images[0].size === 0) {
+  if (images.length === 0 || images.every(f => f.size === 0)) {
       return { success: false, error: { images: ['At least one image is required.'] } };
   }
   
   try {
-    const imageUrls = await uploadImages(images);
+    const imageUrls = await uploadImages(images.filter(f => f.size > 0));
 
     const newProduct = {
       ...validation.data,
