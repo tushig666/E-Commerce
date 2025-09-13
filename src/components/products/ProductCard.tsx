@@ -28,21 +28,21 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <div className="group relative text-center">
+    <div className="group relative text-left">
       <Link href={`/products/${product.id}`}>
-        <div className="relative aspect-[3/4] w-full overflow-hidden">
+        <div className="relative aspect-[3/4] w-full overflow-hidden bg-secondary">
           <Image
             src={getImageUrl(product.images[0])}
             alt={product.name}
             width={900}
             height={1200}
-            className="h-full w-full object-cover object-center transition-opacity duration-500 group-hover:opacity-75"
+            className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             data-ai-hint="fashion product"
           />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-500 group-hover:bg-black/20 group-hover:opacity-100">
+           <div className="absolute inset-x-0 bottom-0 p-4">
              <Button 
               variant="secondary"
-              className="rounded-none uppercase tracking-widest"
+              className="w-full rounded-md uppercase tracking-wider opacity-0 transition-opacity group-hover:opacity-100"
               onClick={handleAddToCart}
               aria-label="Add to cart"
             >
@@ -51,11 +51,11 @@ export function ProductCard({ product }: ProductCardProps) {
           </div>
         </div>
         <div className="mt-4">
-          <h3 className="text-sm font-bold uppercase tracking-wider text-foreground">
+          <h3 className="text-sm font-bold tracking-wide text-foreground">
             <span aria-hidden="true" className="absolute inset-0" />
             {product.name}
           </h3>
-          <p className="mt-1 text-lg font-medium text-foreground">${product.price}</p>
+          <p className="mt-1 text-sm text-muted-foreground">${product.price.toFixed(2)}</p>
         </div>
       </Link>
     </div>

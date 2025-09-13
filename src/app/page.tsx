@@ -21,22 +21,22 @@ export default function Home() {
             data-ai-hint="editorial fashion"
           />
         )}
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="relative z-10 flex h-full flex-col items-center justify-center text-center text-white">
-          <h1 className="font-headline text-6xl uppercase tracking-widest md:text-8xl lg:text-9xl">Éclat</h1>
-          <p className="mt-4 max-w-xl text-lg uppercase tracking-wider text-white/90">Fall/Winter Collection</p>
-          <Button asChild size="lg" className="mt-8 rounded-none border-2 border-white bg-transparent uppercase tracking-widest text-white hover:bg-white hover:text-black">
-            <Link href="/products">Explore</Link>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        <div className="relative z-10 flex h-full flex-col items-center justify-end pb-24 text-center text-white">
+          <p className="text-lg uppercase tracking-widest text-white/90">Modern Luxury</p>
+          <h1 className="font-headline text-7xl uppercase md:text-8xl lg:text-9xl">Maison Éclat</h1>
+          <Button asChild size="lg" variant="outline" className="mt-8 rounded-full border-2 border-white bg-transparent px-10 py-6 text-base uppercase tracking-widest text-white backdrop-blur-sm hover:bg-white hover:text-black">
+            <Link href="/products">Explore the Collection</Link>
           </Button>
         </div>
       </section>
 
       <div id="collections">
         {collections.map((collection) => (
-          <section key={collection.name} className="py-16 sm:py-24">
+          <section key={collection.name} className="py-24 sm:py-32">
             <div className="container mx-auto px-4 md:px-6">
-              <div className="mb-12 text-center">
-                <h2 className="font-headline text-5xl uppercase tracking-widest md:text-6xl">{collection.name}</h2>
+              <div className="mb-16 text-center">
+                <h2 className="font-headline text-5xl md:text-6xl">{collection.name}</h2>
               </div>
               <ProductGrid products={collection.products} />
             </div>
