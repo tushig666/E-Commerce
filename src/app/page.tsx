@@ -10,7 +10,7 @@ export default function Home() {
 
   return (
     <div>
-      <section className="relative h-[60vh] min-h-[400px] w-full bg-secondary md:h-[80vh]">
+      <section className="relative h-screen w-full">
         {heroImage && (
           <Image
             src={heroImage.imageUrl}
@@ -18,15 +18,15 @@ export default function Home() {
             fill
             className="object-cover"
             priority
-            data-ai-hint={heroImage.imageHint}
+            data-ai-hint="editorial fashion"
           />
         )}
-        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 bg-black/40" />
         <div className="relative z-10 flex h-full flex-col items-center justify-center text-center text-white">
-          <h1 className="font-headline text-4xl md:text-6xl lg:text-7xl">Timeless Silhouettes</h1>
-          <p className="mt-4 max-w-xl text-lg text-white/90">Discover our new collection, where classic design meets modern sensibility.</p>
-          <Button asChild size="lg" className="mt-8 bg-white/90 text-black hover:bg-white">
-            <Link href="/products">Shop Now</Link>
+          <h1 className="font-headline text-6xl uppercase tracking-widest md:text-8xl lg:text-9xl">Éclat</h1>
+          <p className="mt-4 max-w-xl text-lg uppercase tracking-wider text-white/90">Fall/Winter Collection</p>
+          <Button asChild size="lg" className="mt-8 rounded-none border-2 border-white bg-transparent uppercase tracking-widest text-white hover:bg-white hover:text-black">
+            <Link href="/products">Explore</Link>
           </Button>
         </div>
       </section>
@@ -35,9 +35,8 @@ export default function Home() {
         {collections.map((collection) => (
           <section key={collection.name} className="py-16 sm:py-24">
             <div className="container mx-auto px-4 md:px-6">
-              <div className="mb-10 text-center">
-                <h2 className="font-headline text-3xl md:text-4xl">{collection.name}</h2>
-                <p className="mx-auto mt-2 max-w-md text-muted-foreground">Hand-picked styles just for you.</p>
+              <div className="mb-12 text-center">
+                <h2 className="font-headline text-5xl uppercase tracking-widest md:text-6xl">{collection.name}</h2>
               </div>
               <ProductGrid products={collection.products} />
             </div>

@@ -76,8 +76,8 @@
     {
       "id": "hero",
       "description": "Hero banner image",
-      "imageUrl": "https://picsum.photos/seed/hero/1800/1000",
-      "imageHint": "fashion model"
+      "imageUrl": "https://picsum.photos/seed/fashion-hero/1800/1200",
+      "imageHint": "editorial fashion"
     }
   ]
 }
