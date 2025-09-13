@@ -9,9 +9,11 @@ export function mapDocToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         // This case should ideally not be hit if we check exists() before calling
         throw new Error(`Document data is empty for doc ID: ${doc.id}`);
     }
-    // Ensure timestamps are consistently converted to ISO strings
-    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : (data.createdAt || new Date().toISOString());
-    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : (data.updatedAt || new Date().toISOString());
+
+    // Convert Firestore Timestamps to ISO strings, handling cases where they might be missing.
+    // Do NOT generate a new Date() here as it causes mismatch between server and client.
+    const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : null;
+    const updatedAt = data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : null;
 
     return {
         id: doc.id,
@@ -33,14 +35,22 @@ export async function getProducts(): Promise<Product[]> {
 
     if (productSnapshot.empty) {
         console.warn("No products found in Firestore, returning static data.");
-        return staticProducts;
+        return staticProducts.map(p => ({
+            ...p,
+            createdAt: p.createdAt || new Date().toISOString(),
+            updatedAt: p.updatedAt || new Date().toISOString()
+        }));
     }
     
     const productList = productSnapshot.docs.map(mapDocToProduct);
     return productList;
   } catch (error) {
     console.error("Error fetching products from Firestore, returning static data: ", error);
-    return staticProducts;
+     return staticProducts.map(p => ({
+        ...p,
+        createdAt: p.createdAt || new Date().toISOString(),
+        updatedAt: p.updatedAt || new Date().toISOString()
+    }));
   }
 }
 
@@ -55,11 +65,25 @@ export async function getProduct(id: string): Promise<Product | null> {
       console.warn(`Product with id ${id} not found in Firestore.`);
       // Fallback to static data if not found in Firestore
       const staticProduct = staticProducts.find(p => p.id === id);
-      return staticProduct || null;
+       if (staticProduct) {
+        return {
+            ...staticProduct,
+            createdAt: staticProduct.createdAt || new Date().toISOString(),
+            updatedAt: staticProduct.updatedAt || new Date().toISOString()
+        }
+      }
+      return null;
     }
   } catch (error) {
     console.error(`Error fetching product ${id}, returning static data: `, error);
     const staticProduct = staticProducts.find(p => p.id === id);
-    return staticProduct || null;
+    if (staticProduct) {
+        return {
+            ...staticProduct,
+            createdAt: staticProduct.createdAt || new Date().toISOString(),
+            updatedAt: staticProduct.updatedAt || new Date().toISOString()
+        }
+    }
+    return null;
   }
 }
