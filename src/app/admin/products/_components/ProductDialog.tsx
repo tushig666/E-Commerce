@@ -161,7 +161,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
                <FormItem>
                 <FormLabel>Images</FormLabel>
                  <FormControl>
-                   <>
+                   <div>
                      <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
                         <Upload className="mr-2 h-4 w-4" />
                         Upload Images
@@ -174,7 +174,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
                         onChange={handleImageChange}
                         accept="image/*"
                     />
-                   </>
+                   </div>
                 </FormControl>
                 <FormMessage>{form.formState.errors.images?.message as string}</FormMessage>
               </FormItem>
