@@ -39,7 +39,7 @@ export default async function Home() {
               <div className="mb-16 text-center">
                 <h2 className="font-headline text-5xl md:text-6xl">{collection.name}</h2>
                 <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground">
-                  Discover our latest pieces, curated for the modern wardrobe.
+                  {collection.name === 'New Arrivals' ? 'Манай хамгийн сүүлийн үеийн загварууд, таны орчин үеийн хувцасны шүүгээнд зориулав.' : 'Discover our curated selection of timeless pieces.'}
                 </p>
               </div>
               <ProductGrid products={collection.products} />
