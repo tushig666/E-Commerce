@@ -38,7 +38,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       } else {
         const storedCart = localStorage.getItem('maison-cart');
         if (storedCart) {
-          setCart(JSON.parse(storedCart));
+          try {
+            setCart(JSON.parse(storedCart));
+          } catch (error) {
+            console.error("Failed to parse cart from localStorage", error);
+            setCart([]);
+          }
         }
       }
     };
@@ -49,8 +54,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (!isMounted) return;
     const saveCart = async () => {
       if (user) {
-        const cartRef = doc(db, 'carts', user.uid);
-        await setDoc(cartRef, { items: cart });
+        if(db) {
+            const cartRef = doc(db, 'carts', user.uid);
+            await setDoc(cartRef, { items: cart });
+        }
       } else {
         localStorage.setItem('maison-cart', JSON.stringify(cart));
       }

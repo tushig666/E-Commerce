@@ -16,7 +16,7 @@ export function useWishlist() {
   useEffect(() => {
     setIsMounted(true);
     const loadWishlist = async () => {
-      if (user) {
+      if (user && db) {
         const wishlistRef = doc(db, 'wishlists', user.uid);
         const wishlistSnap = await getDoc(wishlistRef);
         if (wishlistSnap.exists()) {
@@ -24,10 +24,15 @@ export function useWishlist() {
         } else {
           setWishlist([]);
         }
-      } else {
+      } else if (!user) {
         const localWishlist = localStorage.getItem('maison-wishlist');
         if (localWishlist) {
-          setWishlist(JSON.parse(localWishlist));
+            try {
+                setWishlist(JSON.parse(localWishlist));
+            } catch (error) {
+                console.error("Failed to parse wishlist from localStorage", error);
+                setWishlist([]);
+            }
         }
       }
     };
@@ -36,34 +41,49 @@ export function useWishlist() {
 
   const updateWishlist = async (newWishlist: string[]) => {
     setWishlist(newWishlist);
-    if (user) {
+    if (user && db) {
       const wishlistRef = doc(db, 'wishlists', user.uid);
       await setDoc(wishlistRef, { productIds: newWishlist });
-    } else {
+    } else if (!user) {
       localStorage.setItem('maison-wishlist', JSON.stringify(newWishlist));
     }
   };
 
   const toggleWishlist = useCallback(async (product: Product) => {
     const isInWishlist = wishlist.includes(product.id);
-    if (user) {
+    if (user && db) {
       const wishlistRef = doc(db, 'wishlists', user.uid);
-      if (isInWishlist) {
-        await updateDoc(wishlistRef, { productIds: arrayRemove(product.id) });
-        setWishlist(prev => prev.filter(id => id !== product.id));
-        toast({
-          title: 'Removed from Wishlist',
-          description: `${product.name} has been removed from your wishlist.`,
-        });
-      } else {
-        await updateDoc(wishlistRef, { productIds: arrayUnion(product.id) });
-        setWishlist(prev => [...prev, product.id]);
-        toast({
-          title: 'Added to Wishlist',
-          description: `${product.name} has been added to your wishlist.`,
-        });
+      try {
+        if (isInWishlist) {
+          await updateDoc(wishlistRef, { productIds: arrayRemove(product.id) });
+          setWishlist(prev => prev.filter(id => id !== product.id));
+          toast({
+            title: 'Removed from Wishlist',
+            description: `${product.name} has been removed from your wishlist.`,
+          });
+        } else {
+          // Ensure the document exists before trying to update it with arrayUnion
+          const wishlistSnap = await getDoc(wishlistRef);
+          if (wishlistSnap.exists()) {
+            await updateDoc(wishlistRef, { productIds: arrayUnion(product.id) });
+          } else {
+            await setDoc(wishlistRef, { productIds: [product.id] });
+          }
+          setWishlist(prev => [...prev, product.id]);
+          toast({
+            title: 'Added to Wishlist',
+            description: `${product.name} has been added to your wishlist.`,
+          });
+        }
+      } catch (error) {
+          console.error("Error toggling wishlist in Firestore: ", error);
+          toast({
+              variant: 'destructive',
+              title: 'Error updating wishlist',
+              description: 'Could not update your wishlist. Please try again.'
+          })
       }
-    } else {
+    } else if (!user) {
       // Non-logged-in user logic
       const newWishlist = isInWishlist
         ? wishlist.filter(id => id !== product.id)
