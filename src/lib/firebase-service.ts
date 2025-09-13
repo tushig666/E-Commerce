@@ -27,6 +27,10 @@ export function mapDocToProduct(doc: DocumentSnapshot<DocumentData>): Product {
 }
 
 export async function getProducts(): Promise<Product[]> {
+  if (!db) {
+    console.warn("Firestore is not initialized, returning static data.");
+    return staticProducts;
+  }
   try {
     const productsCollection = collection(db, 'products');
     const q = query(productsCollection, orderBy('createdAt', 'desc'));
@@ -34,6 +38,11 @@ export async function getProducts(): Promise<Product[]> {
 
     const firestoreProducts = productSnapshot.docs.map(mapDocToProduct);
 
+    if (firestoreProducts.length === 0) {
+        console.log("No products found in Firestore, returning static data as fallback.");
+        return staticProducts;
+    }
+    
     // If there are very few products in Firestore, merge with static products
     // to make the store look populated initially.
     if (firestoreProducts.length < 10) {
@@ -54,6 +63,11 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getProduct(id: string): Promise<Product | null> {
+  if (!db) {
+    console.warn("Firestore is not initialized, returning static data for getProduct.");
+    const staticProduct = staticProducts.find(p => p.id === id);
+    return staticProduct || null;
+  }
   try {
     const productRef = doc(db, 'products', id);
     const productSnap = await getDoc(productRef);

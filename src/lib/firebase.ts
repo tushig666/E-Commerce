@@ -1,7 +1,7 @@
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
@@ -16,13 +16,19 @@ const firebaseConfig = {
 // Check if all required environment variables are present.
 const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-// Initialize Firebase only if the config is valid and we are in the browser or it hasn't been initialized yet.
-const app = isConfigValid && !getApps().length ? initializeApp(firebaseConfig) : (getApps().length > 0 ? getApp() : null);
+let app: FirebaseApp | null = null;
+let auth: Auth | null = null;
+let db: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
-// Conditionally get other Firebase services if the app was initialized.
-const auth = app ? getAuth(app) : null;
-const db = app ? getFirestore(app) : null;
-const storage = app ? getStorage(app) : null;
+if (isConfigValid) {
+    app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+}
 
+if (app) {
+    auth = getAuth(app);
+    db = getFirestore(app);
+    storage = getStorage(app);
+}
 
 export { app, auth, db, storage };
