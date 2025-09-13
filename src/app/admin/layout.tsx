@@ -1,8 +1,7 @@
-import { SidebarProvider, Sidebar, SidebarTrigger, SidebarInset, SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton } from "@/components/ui/sidebar";
-import { Home, Package } from "lucide-react";
 import Link from "next/link";
-import { Logo } from "@/components/icons/Logo";
 import { AuthProvider } from "@/hooks/useAuth";
+import { Logo } from "@/components/icons/Logo";
+import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({
   children,
@@ -11,42 +10,34 @@ export default function AdminLayout({
 }) {
   return (
     <AuthProvider>
-      <SidebarProvider>
-        <Sidebar>
-          <SidebarHeader>
-            <div className="p-2 flex justify-center">
+      <div className="flex min-h-screen w-full flex-col">
+        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+          <nav className="hidden flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
+            <Link
+              href="/admin"
+              className="flex items-center gap-2 text-lg font-semibold md:text-base"
+            >
               <Logo />
-            </div>
-          </SidebarHeader>
-          <SidebarContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Home">
-                  <Link href="/admin">
-                    <Home />
-                    <span>Home</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild tooltip="Products">
-                  <Link href="/admin/products">
-                    <Package />
-                    <span>Products</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarContent>
-        </Sidebar>
-        <SidebarInset>
-          <header className="flex h-14 items-center justify-between border-b bg-background px-4">
-            <SidebarTrigger />
-            <h1 className="text-lg font-semibold">Admin Dashboard</h1>
-          </header>
-          <main className="flex-1 p-4 md:p-6">{children}</main>
-        </SidebarInset>
-      </SidebarProvider>
+              <span className="sr-only">Maison Éclat</span>
+            </Link>
+            <Link
+              href="/admin"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Dashboard
+            </Link>
+            <Link
+              href="/admin/products"
+              className="text-foreground transition-colors hover:text-foreground"
+            >
+              Products
+            </Link>
+          </nav>
+        </header>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          {children}
+        </main>
+      </div>
     </AuthProvider>
   );
 }
