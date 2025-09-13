@@ -79,14 +79,15 @@ export async function addProduct(formData: FormData) {
     
     return { success: true, product: productForClient };
   } catch (e: any) {
-    return { success: false, error: { general: [e.message] } };
+    console.error("Error in addProduct:", e);
+    return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
   }
 }
 
 export async function updateProduct(formData: FormData) {
   const id = formData.get('id') as string;
   if (!id) {
-    return { success: false, error: { general: ['Product ID is missing.'] } };
+    return { success: false, error: { _form: ['Product ID is missing.'] } };
   }
 
   const rawData = Object.fromEntries(formData);
@@ -107,29 +108,21 @@ export async function updateProduct(formData: FormData) {
     const productRef = doc(db, 'products', id);
     const productSnap = await getDoc(productRef);
     if (!productSnap.exists()) {
-        return { success: false, error: { general: ['Product not found.'] } };
+        return { success: false, error: { _form: ['Product not found.'] } };
     }
     const originalProduct = productSnap.data();
     const originalImages = originalProduct.images || [];
 
-    // Identify images to delete
     const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
-    if (imagesToDelete.length > 0) {
-      await deleteImages(imagesToDelete);
-    }
+    await deleteImages(imagesToDelete);
 
-    let newImageUrls: string[] = [];
-    if (newImageFiles.length > 0) {
-        newImageUrls = await uploadImages(newImageFiles);
-    }
-    
+    const newImageUrls = await uploadImages(newImageFiles);
     const finalImageUrls = [...existingImageUrls, ...newImageUrls];
     
-    // Preserve the original createdAt timestamp
     const updatedData = { 
         ...validation.data, 
         images: finalImageUrls,
-        createdAt: originalProduct.createdAt, // Keep original timestamp
+        createdAt: originalProduct.createdAt,
     };
     await updateDoc(productRef, updatedData);
 
@@ -138,7 +131,6 @@ export async function updateProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
         
-    // For the client, convert timestamp to a serializable format
     const productForClient: Product = {
       ...validation.data,
       id,
@@ -147,8 +139,10 @@ export async function updateProduct(formData: FormData) {
     };
 
     return { success: true, product: productForClient };
-  } catch (e: any) {
-    return { success: false, error: { general: [e.message] } };
+  } catch (e: any)
+   {
+    console.error("Error in updateProduct:", e);
+    return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
   }
 }
 
@@ -160,28 +154,21 @@ export async function deleteProduct(id: string) {
     const productRef = doc(db, 'products', id);
     const productSnap = await getDoc(productRef);
 
-    if (!productSnap.exists()) {
-      // If product doesn't exist, it might be already deleted.
-      // Revalidate paths and return success to update UI.
-      revalidatePath('/admin/products');
-      revalidatePath('/products');
-      revalidatePath('/');
-      return { success: true };
-    }
-
-    const productData = productSnap.data();
-    if (productData.images && productData.images.length > 0) {
-      await deleteImages(productData.images);
+    if (productSnap.exists()) {
+      const productData = productSnap.data();
+      if (productData.images && productData.images.length > 0) {
+        await deleteImages(productData.images);
+      }
+      await deleteDoc(productRef);
     }
     
-    await deleteDoc(productRef);
-
     revalidatePath('/admin/products');
     revalidatePath('/products');
     revalidatePath('/');
     
     return { success: true };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    console.error("Error in deleteProduct:", e);
+    return { success: false, error: e.message || 'An unknown server error occurred.' };
   }
 }

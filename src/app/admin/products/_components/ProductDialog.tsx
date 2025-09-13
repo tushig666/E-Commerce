@@ -33,7 +33,7 @@ const formSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   price: z.coerce.number().min(0.01, 'Price must be greater than 0'),
   category: z.string().min(1, 'Category is required'),
-  images: z.any(),
+  images: z.any(), // We'll handle image validation manually
 });
 
 type ProductFormValues = z.infer<typeof formSchema>;
@@ -53,34 +53,33 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
       description: '',
       price: 0,
       category: '',
-      images: [],
+      images: undefined,
     },
   });
-  const { formState: { isSubmitting }, setValue } = form;
+  const { formState: { isSubmitting }, setValue, trigger, clearErrors } = form;
 
   const [imagePreviews, setImagePreviews] = useState<Array<{url: string, file?: File}>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      if (product) {
-        form.reset({
-          name: product.name,
-          description: product.description,
-          price: product.price,
-          category: product.category,
-        });
-        setImagePreviews(product.images.map(url => ({ url })));
-      } else {
-        form.reset({ name: '', description: '', price: 0, category: '' });
-        setImagePreviews([]);
-      }
-      // Clear file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    if (product) {
+      form.reset({
+        name: product.name,
+        description: product.description,
+        price: product.price,
+        category: product.category,
+      });
+      setImagePreviews(product.images.map(url => ({ url })));
+    } else {
+      form.reset({ name: '', description: '', price: 0, category: '', images: undefined });
+      setImagePreviews([]);
     }
-  }, [product, form, isOpen]);
+    clearErrors();
+    // Clear file input value
+    if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+    }
+  }, [product, isOpen, form, clearErrors]);
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -91,13 +90,30 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
     }));
 
     setImagePreviews(prev => [...prev, ...newPreviews]);
+    if (files.length > 0) {
+        clearErrors("images");
+    }
   };
 
   const removeImage = (urlToRemove: string) => {
-    setImagePreviews(prev => prev.filter(img => img.url !== urlToRemove));
+    setImagePreviews(prev => {
+        const newPreviews = prev.filter(img => img.url !== urlToRemove);
+        // Revoke object URL to prevent memory leaks for new files
+        const removedPreview = prev.find(img => img.url === urlToRemove);
+        if (removedPreview && removedPreview.file) {
+            URL.revokeObjectURL(urlToRemove);
+        }
+        return newPreviews;
+    });
   };
   
   const onSubmit = async (values: ProductFormValues) => {
+    const hasImages = imagePreviews.length > 0;
+    if (!hasImages) {
+        form.setError("images", { type: "manual", message: "At least one image is required." });
+        return;
+    }
+
     const formData = new FormData();
     if (product) {
       formData.append('id', product.id);
@@ -119,7 +135,11 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+        if (!isSubmitting) {
+            onOpenChange(open);
+        }
+    }}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
@@ -139,7 +159,6 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
                         Upload Images
                     </Button>
                     <Input
-                        id="images"
                         type="file"
                         ref={fileInputRef}
                         className="hidden"

@@ -26,6 +26,9 @@ import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addProduct, updateProduct, deleteProduct } from '../_actions/product-actions';
 
+// Define a type for the form errors
+type FormErrors = { [key: string]: string[] | undefined };
+
 export function ProductsDataTable({ initialProducts }: { initialProducts: Product[] }) {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -36,9 +39,6 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
 
   const handleSaveChanges = async (productData: FormData) => {
     const action = editingProduct ? updateProduct : addProduct;
-    if (editingProduct) {
-        productData.append('id', editingProduct.id);
-    }
     const result = await action(productData);
 
     if (result.success && result.product) {
@@ -46,20 +46,25 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
         setProducts(products.map(p => (p.id === result.product!.id ? result.product! : p)));
         toast({ title: 'Success', description: 'Product updated successfully.' });
       } else {
-        setProducts([result.product!, ...products]);
+        // Add new product to the top of the list
+        setProducts([result.product, ...products]);
         toast({ title: 'Success', description: 'Product added successfully.' });
       }
       setIsDialogOpen(false);
       setEditingProduct(null);
     } else {
-       const errorMsg = typeof result.error === 'string' 
-        ? result.error 
-        : (result.error && Object.values(result.error as any).flat().join(', '));
+       const errors = result.error as FormErrors | string;
+       let errorMsg = 'An unknown error occurred.';
+       if (typeof errors === 'string') {
+         errorMsg = errors;
+       } else if (errors) {
+         errorMsg = Object.values(errors).flat().join(', ');
+       }
         
       toast({
         variant: 'destructive',
         title: 'Error saving product',
-        description: errorMsg || 'An unknown error occurred.',
+        description: errorMsg,
       });
     }
   };
@@ -164,12 +169,12 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       <ProductDialog
         isOpen={isDialogOpen}
         onOpenChange={(isOpen) => {
-          if (!isDialogOpen) return;
           setIsDialogOpen(isOpen);
           if (!isOpen) {
+             // Delay resetting the product to allow dialog to close smoothly
              setTimeout(() => {
                 setEditingProduct(null);
-            }, 500);
+            }, 300);
           }
         }}
         onSave={handleSaveChanges}
