@@ -5,6 +5,15 @@ import { getProducts } from "@/lib/firebase-service";
 import { ProductsDataTable } from "./_components/ProductsDataTable";
 import type { Product } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
