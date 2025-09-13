@@ -17,8 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import type { Product } from '@/lib/types';
 import {
   Form,
@@ -57,50 +56,64 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
       images: [],
     },
   });
-  const { formState: { isSubmitting } } = form;
+  const { formState: { isSubmitting }, setValue } = form;
 
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<Array<{url: string, file?: File}>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (product) {
-      form.reset({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-      });
-      setImagePreviews(product.images);
-    } else {
-      form.reset({ name: '', description: '', price: 0, category: '' });
-      setImagePreviews([]);
+    if (isOpen) {
+      if (product) {
+        form.reset({
+          name: product.name,
+          description: product.description,
+          price: product.price,
+          category: product.category,
+        });
+        setImagePreviews(product.images.map(url => ({ url })));
+      } else {
+        form.reset({ name: '', description: '', price: 0, category: '' });
+        setImagePreviews([]);
+      }
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   }, [product, form, isOpen]);
   
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
-    form.setValue('images', files);
     
-    const previews = files.map(file => URL.createObjectURL(file));
-    setImagePreviews(previews);
+    const newPreviews = files.map(file => ({
+        url: URL.createObjectURL(file),
+        file
+    }));
+
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+  };
+
+  const removeImage = (urlToRemove: string) => {
+    setImagePreviews(prev => prev.filter(img => img.url !== urlToRemove));
   };
   
   const onSubmit = async (values: ProductFormValues) => {
     const formData = new FormData();
+    if (product) {
+      formData.append('id', product.id);
+    }
     formData.append('name', values.name);
     formData.append('description', values.description);
     formData.append('price', values.price.toString());
     formData.append('category', values.category);
     
-    if (product?.images) {
-        product.images.forEach(url => formData.append('existingImages', url));
-    }
-
-    if (values.images) {
-      values.images.forEach((file: File) => {
-        formData.append('images', file);
-      });
-    }
+    imagePreviews.forEach(img => {
+      if (img.file) {
+        formData.append('images', img.file);
+      } else {
+        formData.append('existingImages', img.url);
+      }
+    });
     
     await onSave(formData);
   };
@@ -117,45 +130,46 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
             <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="images"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Images</FormLabel>
-                    <FormControl>
-                       <div className="flex items-center gap-4">
-                         <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Upload Images
-                        </Button>
-                        <Input
-                            id="images"
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            multiple
-                            onChange={handleImageChange}
-                            accept="image/*"
-                        />
-                       </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+               <FormItem>
+                <FormLabel>Images</FormLabel>
+                 <FormControl>
+                   <div className="flex items-center gap-4">
+                     <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Images
+                    </Button>
+                    <Input
+                        id="images"
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        multiple
+                        onChange={handleImageChange}
+                        accept="image/*"
+                    />
+                   </div>
+                </FormControl>
+                <FormMessage>{form.formState.errors.images?.message as string}</FormMessage>
+              </FormItem>
 
-                {imagePreviews.length > 0 && (
-                    <div className="grid grid-cols-4 gap-4">
-                        <div className="col-start-1 col-span-4 grid grid-cols-3 gap-2">
-                        {imagePreviews.map((preview, index) => (
-                            <div key={index} className="relative aspect-square w-full">
-                            <Image src={preview} alt={`Preview ${index}`} fill className="rounded-md object-cover" />
-                            </div>
-                        ))}
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                    {imagePreviews.map((img) => (
+                        <div key={img.url} className="relative aspect-square w-full">
+                            <Image src={img.url} alt="Product preview" fill className="rounded-md object-cover" />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="absolute -top-2 -right-2 h-6 w-6 rounded-full"
+                              onClick={() => removeImage(img.url)}
+                            >
+                                <X className="h-4 w-4" />
+                            </Button>
                         </div>
-                    </div>
-                )}
+                    ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 md:col-start-2">
@@ -216,7 +230,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
             </div>
             
             <DialogFooter className="md:col-span-2">
-                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes

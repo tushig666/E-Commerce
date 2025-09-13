@@ -58,7 +58,7 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
         
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Error saving product',
         description: errorMsg || 'An unknown error occurred.',
       });
     }
@@ -77,7 +77,7 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
     } else {
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Error deleting product',
         description: result.error,
       });
     }
@@ -149,7 +149,7 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
                       <DropdownMenuItem onSelect={() => openDialogForEdit(product)}>
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => openDeleteDialog(product)} className="text-destructive">
+                      <DropdownMenuItem onSelect={() => openDeleteDialog(product)} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -164,8 +164,13 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       <ProductDialog
         isOpen={isDialogOpen}
         onOpenChange={(isOpen) => {
+          if (!isDialogOpen) return;
           setIsDialogOpen(isOpen);
-          if (!isOpen) setEditingProduct(null);
+          if (!isOpen) {
+             setTimeout(() => {
+                setEditingProduct(null);
+            }, 500);
+          }
         }}
         onSave={handleSaveChanges}
         product={editingProduct}

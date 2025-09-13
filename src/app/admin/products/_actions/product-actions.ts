@@ -31,6 +31,7 @@ async function deleteImages(imageUrls: string[]) {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
+            // storage/object-not-found-г алдаа гэж үзэхгүй, учир нь зураг аль хэдийн устгагдсан байж болно
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image: ${url}`, error);
             }
@@ -68,14 +69,14 @@ export async function addProduct(formData: FormData) {
     
     return { success: true, product: { ...newProduct, id: docRef.id } as Product };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    return { success: false, error: { general: [e.message] } };
   }
 }
 
 export async function updateProduct(formData: FormData) {
   const id = formData.get('id') as string;
   if (!id) {
-    return { success: false, error: 'Product ID is missing.' };
+    return { success: false, error: { general: ['Product ID is missing.'] } };
   }
 
   const rawData = Object.fromEntries(formData);
@@ -85,22 +86,35 @@ export async function updateProduct(formData: FormData) {
     return { success: false, error: validation.error.flatten().fieldErrors };
   }
   
-  const newImages = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
-  const existingImages = formData.getAll('existingImages').filter(f => typeof f === 'string') as string[];
+  const newImageFiles = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
+  const existingImageUrls = formData.getAll('existingImages').filter(f => typeof f === 'string') as string[];
 
-  if (existingImages.length === 0 && newImages.length === 0) {
+  if (existingImageUrls.length === 0 && newImageFiles.length === 0) {
     return { success: false, error: { images: ['At least one image is required.'] }};
   }
 
   try {
-    let imageUrls: string[] = existingImages;
-    if (newImages.length > 0) {
-        const newImageUrls = await uploadImages(newImages);
-        imageUrls = [...imageUrls, ...newImageUrls];
+    const productRef = doc(db, 'products', id);
+    const productSnap = await getDoc(productRef);
+    if (!productSnap.exists()) {
+        return { success: false, error: { general: ['Product not found.'] } };
+    }
+    const originalImages = productSnap.data().images || [];
+
+    // Identify images to delete
+    const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
+    if (imagesToDelete.length > 0) {
+      await deleteImages(imagesToDelete);
+    }
+
+    let newImageUrls: string[] = [];
+    if (newImageFiles.length > 0) {
+        newImageUrls = await uploadImages(newImageFiles);
     }
     
-    const productRef = doc(db, 'products', id);
-    const updatedData = { ...validation.data, images: imageUrls };
+    const finalImageUrls = [...existingImageUrls, ...newImageUrls];
+    
+    const updatedData = { ...validation.data, images: finalImageUrls };
     await updateDoc(productRef, updatedData);
 
     revalidatePath('/admin/products');
@@ -108,9 +122,9 @@ export async function updateProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
     
-    return { success: true, product: { ...updatedData, id } as Product };
+    return { success: true, product: { ...updatedData, id, createdAt: productSnap.data().createdAt } as Product };
   } catch (e: any) {
-    return { success: false, error: e.message };
+    return { success: false, error: { general: [e.message] } };
   }
 }
 
