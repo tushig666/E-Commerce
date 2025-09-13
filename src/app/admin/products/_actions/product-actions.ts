@@ -28,17 +28,24 @@ async function uploadImages(images: File[]): Promise<string[]> {
 }
 
 async function deleteImages(imageUrls: string[]) {
-    for (const url of imageUrls) {
-        if (!url || typeof url !== 'string' || !url.startsWith('https://firebasestorage.googleapis.com')) continue;
+    const deletePromises = imageUrls.map(async (url) => {
+        if (!url || typeof url !== 'string' || !url.startsWith('https://firebasestorage.googleapis.com')) {
+            return; // Skip invalid URLs
+        }
         try {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
+            // If the object does not exist, we can safely ignore the error.
+            // This prevents crashes if an image was already deleted manually or in a previous failed attempt.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image: ${url}`, error);
+                // Optionally re-throw or handle other critical errors
             }
         }
-    }
+    });
+
+    await Promise.all(deletePromises);
 }
 
 export async function addProduct(formData: FormData) {
@@ -113,7 +120,7 @@ export async function updateProduct(formData: FormData) {
     const productData = { 
         ...validation.data, 
         images: finalImageUrls,
-        createdAt: originalProduct?.createdAt || Timestamp.now(), // Preserve original creation date
+        createdAt: originalProduct?.createdAt || Timestamp.now(),
     };
 
     await setDoc(productRef, productData, { merge: true });
