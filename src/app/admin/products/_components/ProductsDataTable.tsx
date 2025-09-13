@@ -49,10 +49,10 @@ export function ProductsDataTable({ initialProducts }: ProductsDataTableProps) {
   };
   
   const handleDialogClose = (open: boolean) => {
-    setIsDialogOpen(open);
     if (!open) {
       setTimeout(() => setSelectedProduct(null), 150);
     }
+    setIsDialogOpen(open);
   };
 
   const refreshProducts = async () => {
@@ -64,12 +64,13 @@ export function ProductsDataTable({ initialProducts }: ProductsDataTableProps) {
     const result = await saveProduct(formData);
 
     if (result.success) {
-      await refreshProducts(); // Re-fetch all products to ensure consistency
+      // Re-fetch all products from the server to ensure data consistency
+      await refreshProducts(); 
       const isEditing = !!formData.get('id');
       toast({ title: 'Success', description: `Product ${isEditing ? 'updated' : 'added'} successfully.` });
       handleDialogClose(false);
     }
-    // Error is handled inside the dialog via toast
+    // The dialog itself will show a toast on failure
     return result;
   };
 
@@ -79,9 +80,9 @@ export function ProductsDataTable({ initialProducts }: ProductsDataTableProps) {
     const result = await deleteProduct(selectedProduct.id);
 
     if (result.success) {
+      // Optimistically remove from local state
       setProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
       toast({ title: 'Success', description: 'Product deleted successfully.' });
-      setIsDeleteDialogOpen(false);
     } else {
       toast({
         variant: 'destructive',
@@ -89,6 +90,8 @@ export function ProductsDataTable({ initialProducts }: ProductsDataTableProps) {
         description: result.error,
       });
     }
+    setIsDeleteDialogOpen(false);
+    setSelectedProduct(null);
   };
 
   return (

@@ -37,8 +37,11 @@ async function deleteImages(imageUrls: string[]) {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
+            // storage/object-not-found is a common error if the image was already deleted, so we can safely ignore it.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image at ${url}:`, error);
+                // Depending on the use case, you might want to re-throw the error
+                // throw error; 
             }
         }
     });
@@ -46,9 +49,16 @@ async function deleteImages(imageUrls: string[]) {
     await Promise.allSettled(deletePromises);
 }
 
-export async function saveProduct(formData: FormData) {
+export async function saveProduct(formData: FormData): Promise<{ success: boolean; error?: any; }> {
   const id = formData.get('id') as string | null;
-  const rawData = Object.fromEntries(formData);
+  
+  const rawData: { [k: string]: any } = {};
+  formData.forEach((value, key) => {
+    if (key !== 'id' && key !== 'images' && key !== 'existingImages') {
+      rawData[key] = value;
+    }
+  });
+
   const validation = productSchema.safeParse(rawData);
 
   if (!validation.success) {
@@ -57,19 +67,19 @@ export async function saveProduct(formData: FormData) {
 
   const newImageFiles = formData.getAll('images').filter(f => f instanceof File && f.size > 0) as File[];
   const existingImageUrls = formData.getAll('existingImages').filter(f => typeof f === 'string') as string[];
-
+  
   if (existingImageUrls.length === 0 && newImageFiles.length === 0) {
     return { success: false, error: { _form: ['At least one image is required.'] } };
   }
 
   try {
+    const newImageUrls = await uploadImages(newImageFiles);
+    
     const productDataForDb: any = {
       ...validation.data,
+      images: [...existingImageUrls, ...newImageUrls],
       updatedAt: Timestamp.now(),
     };
-    
-    const newImageUrls = await uploadImages(newImageFiles);
-    productDataForDb.images = [...existingImageUrls, ...newImageUrls];
 
     if (id) {
         const productRef = doc(db, 'products', id);
@@ -77,7 +87,9 @@ export async function saveProduct(formData: FormData) {
         if (productSnap.exists()) {
             const originalImages = productSnap.data().images || [];
             const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
-            await deleteImages(imagesToDelete);
+            if (imagesToDelete.length > 0) {
+              await deleteImages(imagesToDelete);
+            }
         }
         await updateDoc(productRef, productDataForDb);
     } else {
@@ -94,11 +106,12 @@ export async function saveProduct(formData: FormData) {
 
   } catch (e: any) {
     console.error("Error in saveProduct:", e);
+    // Return a generic error message to the client
     return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
   }
 }
 
-export async function deleteProduct(id: string) {
+export async function deleteProduct(id: string): Promise<{ success: boolean; error?: string; }> {
   if (!id) {
     return { success: false, error: 'Product ID is missing.' };
   }
@@ -108,7 +121,9 @@ export async function deleteProduct(id: string) {
 
     if (productSnap.exists()) {
       const productData = productSnap.data();
-      await deleteImages(productData.images || []);
+      if (productData.images && productData.images.length > 0) {
+        await deleteImages(productData.images);
+      }
       await deleteDoc(productRef);
     } else {
         console.warn(`Attempted to delete a product that does not exist in Firestore: ${id}`);

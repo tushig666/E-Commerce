@@ -42,7 +42,7 @@ type ProductFormValues = z.infer<typeof formSchema>;
 interface ProductDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: FormData) => Promise<{ success: boolean; error?: any; product?: Product; }>;
+  onSave: (data: FormData) => Promise<{ success: boolean; error?: any; }>;
   product: Product | null;
 }
 
@@ -55,13 +55,13 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
       description: '',
       price: 0,
       category: '',
+      images: [],
     },
   });
 
   const [imagePreviews, setImagePreviews] = useState<Array<{url: string, file?: File}>>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Effect to reset the form and state whenever the dialog opens or the product changes
   useEffect(() => {
     if (isOpen) {
       const defaultValues = product
@@ -70,15 +70,20 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
             description: product.description,
             price: product.price,
             category: product.category,
+            images: product.images,
           }
-        : { name: '', description: '', price: 0, category: '' };
+        : { name: '', description: '', price: 0, category: '', images: [] };
 
       form.reset(defaultValues);
       setImagePreviews(product?.images.map(url => ({ url })) || []);
-      form.clearErrors();
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+      
+    } else {
+        // Clean up when dialog is closed but not shown
+        form.reset({ name: '', description: '', price: 0, category: '', images: [] });
+        setImagePreviews([]);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }
   }, [product, isOpen, form]);
 
@@ -92,16 +97,19 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
     }));
 
     setImagePreviews(prev => [...prev, ...newPreviews]);
+    form.setValue('images', [...imagePreviews, ...newPreviews]);
     form.clearErrors("images");
   };
 
   const removeImage = (urlToRemove: string) => {
-    setImagePreviews(prev => prev.filter(img => {
+    const newPreviews = imagePreviews.filter(img => {
         if (img.url === urlToRemove && img.file) {
             URL.revokeObjectURL(urlToRemove); // Clean up blob URL
         }
         return img.url !== urlToRemove;
-    }));
+    });
+    setImagePreviews(newPreviews);
+    form.setValue('images', newPreviews);
   };
 
   const onSubmit = async (values: ProductFormValues) => {
@@ -134,7 +142,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
        let errorMsg = 'An unknown error occurred.';
        if (typeof error === 'string') {
          errorMsg = error;
-       } else if (error && (error.name || error.description || error.price || error.category || error._form)) {
+       } else if (error && (error.name || error.description || error.price || error.category || (error._form && error._form[0]))) {
          errorMsg = Object.values(error).flat().join(', ');
        }
         
@@ -146,8 +154,14 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
     }
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open && form.formState.isSubmitting) return; // Prevent closing while submitting
+    onOpenChange(open);
+  };
+
+
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{product ? 'Edit Product' : 'Add New Product'}</DialogTitle>
@@ -257,7 +271,7 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
             </div>
             
             <DialogFooter className="md:col-span-2">
-                <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={form.formState.isSubmitting}>Cancel</Button>
+                <Button type="button" variant="ghost" onClick={() => handleOpenChange(false)} disabled={form.formState.isSubmitting}>Cancel</Button>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                     {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save Changes
