@@ -62,22 +62,25 @@ export function ProductDialog({ isOpen, onOpenChange, onSave, product }: Product
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (product) {
-      form.reset({
-        name: product.name,
-        description: product.description,
-        price: product.price,
-        category: product.category,
-      });
-      setImagePreviews(product.images.map(url => ({ url })));
-    } else {
-      form.reset({ name: '', description: '', price: 0, category: '', images: undefined });
-      setImagePreviews([]);
-    }
-    clearErrors();
-    // Clear file input value
-    if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    // This effect now correctly resets the entire form state when the dialog opens or the product changes.
+    if (isOpen) {
+        if (product) {
+            form.reset({
+                name: product.name,
+                description: product.description,
+                price: product.price,
+                category: product.category,
+            });
+            setImagePreviews(product.images.map(url => ({ url })));
+        } else {
+            form.reset({ name: '', description: '', price: 0, category: '', images: undefined });
+            setImagePreviews([]);
+        }
+        clearErrors();
+        // Always clear the file input when the dialog opens
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     }
   }, [product, isOpen, form, clearErrors]);
   
