@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { app } from '@/lib/firebase';
 
 export default function SignUpPage() {
   const [email, setEmail] = useState('');
@@ -16,10 +17,18 @@ export default function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const auth = getAuth();
+  const auth = app ? getAuth(app) : null;
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth) {
+        toast({
+            title: 'Configuration Error',
+            description: 'Firebase is not configured. Please check your setup.',
+            variant: 'destructive',
+        });
+        return;
+    }
     setIsLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
