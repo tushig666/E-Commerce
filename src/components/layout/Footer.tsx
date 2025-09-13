@@ -10,8 +10,7 @@ const footerLinks = [
 
 const socialLinks = [
   { name: "Instagram", href: "#" },
-  { name: "Facebook", href: "#" },
-  { name: "Pinterest", href: "#" },
+  { name: "Gmail", href: "mailto:support@maisoneclat.com" },
 ];
 
 export function Footer() {
