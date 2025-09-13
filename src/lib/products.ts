@@ -12,6 +12,7 @@ export const staticProducts: Product[] = [
     price: 850,
     images: ['https://picsum.photos/seed/a1/900/1200', 'https://picsum.photos/seed/a2/900/1200'],
     category: 'Outerwear',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '2',
@@ -20,6 +21,7 @@ export const staticProducts: Product[] = [
     price: 420,
     images: ['https://picsum.photos/seed/b1/900/1200', 'https://picsum.photos/seed/b2/900/1200'],
     category: 'Knitwear',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '3',
@@ -28,6 +30,7 @@ export const staticProducts: Product[] = [
     price: 1250,
     images: ['https://picsum.photos/seed/c1/900/1200', 'https://picsum.photos/seed/c2/900/1200'],
     category: 'Accessories',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '4',
@@ -36,6 +39,7 @@ export const staticProducts: Product[] = [
     price: 380,
     images: ['https://picsum.photos/seed/d1/900/1200', 'https://picsum.photos/seed/d2/900/1200'],
     category: 'Trousers',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '5',
@@ -44,6 +48,7 @@ export const staticProducts: Product[] = [
     price: 550,
     images: ['https://picsum.photos/seed/e1/900/1200', 'https://picsum.photos/seed/e2/900/1200'],
     category: 'Dresses',
+    createdAt: new Date().toISOString(),
   },
   {
     id: '6',
@@ -52,6 +57,7 @@ export const staticProducts: Product[] = [
     price: 610,
     images: ['https://picsum.photos/seed/f1/900/1200', 'https://picsum.photos/seed/f2/900/1200'],
     category: 'Shoes',
+    createdAt: new Date().toISOString(),
   },
 ];
 

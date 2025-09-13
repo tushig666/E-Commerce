@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import * as z from 'zod';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Product } from '@/lib/types';
 
@@ -60,7 +60,7 @@ export async function addProduct(formData: FormData) {
     const newProduct = {
       ...validation.data,
       images: imageUrls,
-      createdAt: new Date(),
+      createdAt: Timestamp.now(),
     };
 
     const docRef = await addDoc(collection(db, 'products'), newProduct);
@@ -69,7 +69,15 @@ export async function addProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
     
-    return { success: true, product: { ...newProduct, id: docRef.id, createdAt: newProduct.createdAt.toISOString() } as unknown as Product };
+    // Convert Timestamp to a serializable format (ISO string) for the client
+    const productForClient: Product = {
+      ...validation.data,
+      id: docRef.id,
+      images: imageUrls,
+      createdAt: newProduct.createdAt.toDate().toISOString(),
+    };
+    
+    return { success: true, product: productForClient };
   } catch (e: any) {
     return { success: false, error: { general: [e.message] } };
   }
@@ -117,17 +125,28 @@ export async function updateProduct(formData: FormData) {
     
     const finalImageUrls = [...existingImageUrls, ...newImageUrls];
     
-    const updatedData = { ...validation.data, images: finalImageUrls };
+    // Preserve the original createdAt timestamp
+    const updatedData = { 
+        ...validation.data, 
+        images: finalImageUrls,
+        createdAt: originalProduct.createdAt, // Keep original timestamp
+    };
     await updateDoc(productRef, updatedData);
 
     revalidatePath('/admin/products');
     revalidatePath(`/products/${id}`);
     revalidatePath('/products');
     revalidatePath('/');
-    
-    const createdAt = originalProduct.createdAt;
-    
-    return { success: true, product: { ...updatedData, id, createdAt: createdAt.toDate().toISOString() } as unknown as Product };
+        
+    // For the client, convert timestamp to a serializable format
+    const productForClient: Product = {
+      ...validation.data,
+      id,
+      images: finalImageUrls,
+      createdAt: (originalProduct.createdAt as Timestamp).toDate().toISOString(),
+    };
+
+    return { success: true, product: productForClient };
   } catch (e: any) {
     return { success: false, error: { general: [e.message] } };
   }
