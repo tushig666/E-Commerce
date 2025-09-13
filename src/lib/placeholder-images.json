@@ -1,3 +1,83 @@
+
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "1",
+      "description": "Silk Trench Coat front view",
+      "imageUrl": "https://picsum.photos/seed/a1/900/1200",
+      "imageHint": "trench coat"
+    },
+    {
+      "id": "2",
+      "description": "Silk Trench Coat detail view",
+      "imageUrl": "https://picsum.photos/seed/a2/900/1200",
+      "imageHint": "fabric detail"
+    },
+    {
+      "id": "3",
+      "description": "Cashmere Turtleneck front view",
+      "imageUrl": "https://picsum.photos/seed/b1/900/1200",
+      "imageHint": "cashmere sweater"
+    },
+    {
+      "id": "4",
+      "description": "Cashmere Turtleneck side view",
+      "imageUrl": "https://picsum.photos/seed/b2/900/1200",
+      "imageHint": "woman fashion"
+    },
+    {
+      "id": "5",
+      "description": "Leather Tote Bag",
+      "imageUrl": "https://picsum.photos/seed/c1/900/1200",
+      "imageHint": "leather tote"
+    },
+    {
+      "id": "6",
+      "description": "Leather Tote Bag detail",
+      "imageUrl": "https://picsum.photos/seed/c2/900/1200",
+      "imageHint": "bag detail"
+    },
+    {
+      "id": "7",
+      "description": "Wool-blend Trousers",
+      "imageUrl": "https://picsum.photos/seed/d1/900/1200",
+      "imageHint": "wide trousers"
+    },
+    {
+      "id": "8",
+      "description": "Wool-blend Trousers detail",
+      "imageUrl": "https://picsum.photos/seed/d2/900/1200",
+      "imageHint": "fabric texture"
+    },
+    {
+      "id": "9",
+      "description": "Satin Slip Dress",
+      "imageUrl": "https://picsum.photos/seed/e1/900/1200",
+      "imageHint": "satin dress"
+    },
+    {
+      "id": "10",
+      "description": "Satin Slip Dress back",
+      "imageUrl": "https://picsum.photos/seed/e2/900/1200",
+      "imageHint": "woman back"
+    },
+    {
+      "id": "11",
+      "description": "Velvet Loafers",
+      "imageUrl": "https://picsum.photos/seed/f1/900/1200",
+      "imageHint": "velvet shoes"
+    },
+    {
+      "id": "12",
+      "description": "Velvet Loafers on model",
+      "imageUrl": "https://picsum.photos/seed/f2/900/1200",
+      "imageHint": "fashion shoes"
+    },
+    {
+      "id": "hero",
+      "description": "Hero banner image",
+      "imageUrl": "https://picsum.photos/seed/hero/1800/1000",
+      "imageHint": "fashion model"
+    }
+  ]
 }
