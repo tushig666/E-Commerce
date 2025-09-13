@@ -1,16 +1,23 @@
 import { db } from './firebase';
-import { collection, getDocs, doc, getDoc, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, orderBy, query, Timestamp, DocumentSnapshot, DocumentData } from 'firebase/firestore';
 import type { Product } from './types';
 import { staticProducts } from './products'; // Fallback data
 
-function mapDocToProduct(doc: any): Product {
+export function mapDocToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     const data = doc.data();
+    if (!data) {
+        throw new Error("Document data is empty!");
+    }
     return {
         id: doc.id,
-        ...data,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        images: data.images,
+        category: data.category,
         // Convert Firestore Timestamp to ISO string for client-side consumption
         createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-    } as Product;
+    };
 }
 
 export async function getProducts(): Promise<Product[]> {

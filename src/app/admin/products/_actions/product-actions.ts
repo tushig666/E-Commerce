@@ -6,6 +6,7 @@ import { db, storage } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Product } from '@/lib/types';
+import { mapDocToProduct } from '@/lib/firebase-service';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -57,27 +58,22 @@ export async function addProduct(formData: FormData) {
   try {
     const imageUrls = await uploadImages(images.filter(f => f.size > 0));
 
-    const newProduct = {
+    const newProductData = {
       ...validation.data,
       images: imageUrls,
       createdAt: Timestamp.now(),
     };
 
-    const docRef = await addDoc(collection(db, 'products'), newProduct);
+    const docRef = await addDoc(collection(db, 'products'), newProductData);
+    const productSnap = await getDoc(docRef);
+    const newProduct = mapDocToProduct(productSnap);
+
 
     revalidatePath('/admin/products');
     revalidatePath('/products');
     revalidatePath('/');
     
-    // Convert Timestamp to a serializable format (ISO string) for the client
-    const productForClient: Product = {
-      ...validation.data,
-      id: docRef.id,
-      images: imageUrls,
-      createdAt: newProduct.createdAt.toDate().toISOString(),
-    };
-    
-    return { success: true, product: productForClient };
+    return { success: true, product: newProduct };
   } catch (e: any) {
     console.error("Error in addProduct:", e);
     return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
@@ -122,7 +118,7 @@ export async function updateProduct(formData: FormData) {
     const updatedData = { 
         ...validation.data, 
         images: finalImageUrls,
-        createdAt: originalProduct.createdAt,
+        createdAt: originalProduct.createdAt, // Preserve original timestamp
     };
     await updateDoc(productRef, updatedData);
 
@@ -131,14 +127,10 @@ export async function updateProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
         
-    const productForClient: Product = {
-      ...validation.data,
-      id,
-      images: finalImageUrls,
-      createdAt: (originalProduct.createdAt as Timestamp).toDate().toISOString(),
-    };
+    const updatedProductSnap = await getDoc(productRef);
+    const updatedProduct = mapDocToProduct(updatedProductSnap);
 
-    return { success: true, product: productForClient };
+    return { success: true, product: updatedProduct };
   } catch (e: any)
    {
     console.error("Error in updateProduct:", e);
@@ -160,6 +152,9 @@ export async function deleteProduct(id: string) {
         await deleteImages(productData.images);
       }
       await deleteDoc(productRef);
+    } else {
+        // If product doesn't exist, we can consider it a success for the client.
+        console.warn(`Attempted to delete a product that does not exist: ${id}`);
     }
     
     revalidatePath('/admin/products');
