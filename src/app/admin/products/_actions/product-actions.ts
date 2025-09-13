@@ -27,6 +27,7 @@ async function uploadImages(images: File[]): Promise<string[]> {
 
 async function deleteImages(imageUrls: string[]) {
     for (const url of imageUrls) {
+        if (!url || typeof url !== 'string' || !url.startsWith('https://firebasestorage.googleapis.com')) continue;
         try {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
@@ -67,7 +68,7 @@ export async function addProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
     
-    return { success: true, product: { ...newProduct, id: docRef.id } as Product };
+    return { success: true, product: { ...newProduct, id: docRef.id, createdAt: newProduct.createdAt.toISOString() } as unknown as Product };
   } catch (e: any) {
     return { success: false, error: { general: [e.message] } };
   }
@@ -122,7 +123,9 @@ export async function updateProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
     
-    return { success: true, product: { ...updatedData, id, createdAt: productSnap.data().createdAt } as Product };
+    const createdAt = productSnap.data().createdAt;
+    
+    return { success: true, product: { ...updatedData, id, createdAt: createdAt.toDate().toISOString() } as unknown as Product };
   } catch (e: any) {
     return { success: false, error: { general: [e.message] } };
   }
@@ -137,7 +140,12 @@ export async function deleteProduct(id: string) {
     const productSnap = await getDoc(productRef);
 
     if (!productSnap.exists()) {
-      return { success: false, error: 'Product not found.' };
+      // If product doesn't exist, it might be already deleted.
+      // Revalidate paths and return success to update UI.
+      revalidatePath('/admin/products');
+      revalidatePath('/products');
+      revalidatePath('/');
+      return { success: true };
     }
 
     const productData = productSnap.data();
