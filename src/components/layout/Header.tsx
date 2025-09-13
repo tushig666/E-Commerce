@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useWishlist } from '@/hooks/useWishlist';
 import { CartSheet } from '@/components/cart/CartSheet';
 import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -20,6 +21,8 @@ export function Header() {
   const { wishlistCount, isWishlistMounted } = useWishlist();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [hasScrolled, setHasScrolled] = useState(false);
+  const pathname = usePathname();
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -32,7 +35,7 @@ export function Header() {
   return (
     <header className={cn(
       "sticky top-0 z-40 w-full transition-colors duration-300",
-      hasScrolled ? "bg-background/80 border-b border-border backdrop-blur-sm" : "bg-transparent"
+      hasScrolled || !isHomePage ? "bg-background/90 border-b border-border backdrop-blur-sm" : "bg-black/20"
     )}>
       <div className={cn(
         "container mx-auto flex items-center justify-between px-4 md:px-6 transition-all duration-300",
@@ -42,7 +45,7 @@ export function Header() {
           {navLinks.map(link => (
             <Link key={link.href} href={link.href} className={cn(
               "text-sm font-bold uppercase tracking-widest transition-colors",
-              hasScrolled || isMobileMenuOpen ? "text-foreground/80 hover:text-foreground" : "text-white/80 hover:text-white"
+              hasScrolled || !isHomePage ? "text-foreground/80 hover:text-foreground" : "text-white/80 hover:text-white"
             )}>
               {link.label}
             </Link>
@@ -50,7 +53,7 @@ export function Header() {
         </nav>
         
         <div className="flex flex-1 justify-start md:hidden">
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={cn(hasScrolled ? "text-foreground" : "text-white")}>
+          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={cn(hasScrolled || !isHomePage ? "text-foreground" : "text-white")}>
             <Menu className="h-6 w-6" />
             <span className="sr-only">Open Menu</span>
           </Button>
@@ -60,14 +63,14 @@ export function Header() {
           <Link href="/">
             <Logo className={cn(
               "transition-colors",
-              hasScrolled || isMobileMenuOpen ? "text-foreground" : "text-white"
+              hasScrolled || !isHomePage ? "text-foreground" : "text-white"
             )} />
             <span className="sr-only">Maison Éclat Home</span>
           </Link>
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
-          <Button variant="ghost" size="icon" asChild className={cn("hidden md:flex relative", hasScrolled ? "text-foreground" : "text-white")}>
+          <Button variant="ghost" size="icon" asChild className={cn("hidden md:flex relative", hasScrolled || !isHomePage ? "text-foreground" : "text-white")}>
             <Link href="/wishlist">
               <Heart className="h-5 w-5" />
               {isWishlistMounted && wishlistCount > 0 && (

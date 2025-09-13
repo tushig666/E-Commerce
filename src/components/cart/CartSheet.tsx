@@ -50,7 +50,7 @@ export function CartSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className={cn("relative", isHomePage && !hasScrolled ? "text-white" : "text-foreground")}>
+        <Button variant="ghost" size="icon" className={cn("relative", hasScrolled || !isHomePage ? "text-foreground" : "text-white")}>
           <ShoppingBag className="h-5 w-5" />
           {isCartMounted && cartCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-xs font-medium text-primary-foreground">
