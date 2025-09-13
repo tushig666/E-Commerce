@@ -2,11 +2,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ProductGrid } from '@/components/products/ProductGrid';
-import { collections } from '@/lib/products';
+import { getCollections } from '@/lib/products';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-export default function Home() {
+export default async function Home() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'hero');
+  const collections = await getCollections();
 
   return (
     <div>

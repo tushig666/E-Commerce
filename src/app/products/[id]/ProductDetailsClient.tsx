@@ -9,7 +9,6 @@ import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/hooks/useCart.tsx';
 import { useWishlist } from '@/hooks/useWishlist';
 import type { Product } from '@/lib/types';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { cn } from '@/lib/utils';
 import { useBrowsingHistory } from '@/hooks/useBrowsingHistory';
 
@@ -27,26 +26,27 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
     addProductToHistory(product);
   }, [product, addProductToHistory]);
 
-  const getImageUrl = (imageId: string) => {
-    const image = PlaceHolderImages.find(img => img.id === imageId);
-    return image ? image.imageUrl : `https://placehold.co/900x1200?text=${product.name}`;
-  };
+  useEffect(() => {
+    if (product?.images) {
+      setSelectedImage(product.images[0])
+    }
+  }, [product]);
 
   return (
     <div className="grid gap-8 md:grid-cols-2 lg:gap-16">
       <div className="flex flex-col-reverse gap-4 md:flex-row">
         <div className="flex flex-row gap-2 overflow-x-auto md:flex-col md:gap-4">
-          {product.images.map((imgId, index) => (
+          {product.images.map((imgUrl, index) => (
             <button
               key={index}
-              onClick={() => setSelectedImage(imgId)}
+              onClick={() => setSelectedImage(imgUrl)}
               className={cn(
                 "relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md transition-opacity",
-                selectedImage === imgId ? "opacity-100 ring-2 ring-primary ring-offset-2" : "opacity-70 hover:opacity-100"
+                selectedImage === imgUrl ? "opacity-100 ring-2 ring-primary ring-offset-2" : "opacity-70 hover:opacity-100"
               )}
             >
               <Image
-                src={getImageUrl(imgId)}
+                src={imgUrl}
                 alt={`${product.name} image ${index + 1}`}
                 fill
                 className="object-cover"
@@ -56,7 +56,7 @@ export default function ProductDetailsClient({ product }: ProductDetailsClientPr
         </div>
         <div className="aspect-[3/4] flex-1">
           <Image
-            src={getImageUrl(selectedImage)}
+            src={selectedImage}
             alt={product.name}
             width={900}
             height={1200}

@@ -6,17 +6,11 @@ import { Minus, Plus, ShoppingBag, X } from 'lucide-react';
 
 import { useCart } from '@/hooks/useCart.tsx';
 import { Button } from '@/components/ui/button';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent } from '@/components/ui/card';
 
 export default function CartPage() {
   const { cart, removeFromCart, updateQuantity, cartCount, cartTotal, isCartMounted } = useCart();
-
-  const getImageUrl = (imageId: string) => {
-    const image = PlaceHolderImages.find(img => img.id === imageId);
-    return image ? image.imageUrl : 'https://placehold.co/900x1200';
-  };
 
   if (!isCartMounted) {
     return (
@@ -43,7 +37,7 @@ export default function CartPage() {
                 <div key={item.product.id} className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row">
                   <div className="relative h-32 w-full flex-shrink-0 overflow-hidden rounded-md sm:h-24 sm:w-24">
                     <Image
-                      src={getImageUrl(item.product.images[0])}
+                      src={item.product.images[0]}
                       alt={item.product.name}
                       fill
                       className="object-cover"

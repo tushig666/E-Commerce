@@ -2,16 +2,33 @@
 
 import { Heart } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 import { useWishlist } from '@/hooks/useWishlist';
-import { products } from '@/lib/products';
+import { getProducts } from '@/lib/firebase-service';
 import { ProductGrid } from '@/components/products/ProductGrid';
 import { Button } from '@/components/ui/button';
+import { Product } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function WishlistPage() {
   const { wishlist, isWishlistMounted } = useWishlist();
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const wishlistedProducts = isWishlistMounted ? products.filter(p => wishlist.includes(p.id)) : [];
+  useEffect(() => {
+    async function fetchProducts() {
+      setIsLoading(true);
+      const products = await getProducts();
+      setAllProducts(products);
+      setIsLoading(false);
+    }
+    fetchProducts();
+  }, []);
+
+  const wishlistedProducts = isWishlistMounted
+    ? allProducts.filter(p => wishlist.includes(p.id))
+    : [];
 
   return (
     <div className="container mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
@@ -22,7 +39,19 @@ export default function WishlistPage() {
         </p>
       </div>
 
-      {isWishlistMounted && wishlistedProducts.length > 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 xl:gap-x-8">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="group relative">
+              <Skeleton className="aspect-[3/4] w-full" />
+              <div className="mt-4">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="mt-2 h-4 w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : isWishlistMounted && wishlistedProducts.length > 0 ? (
         <ProductGrid products={wishlistedProducts} />
       ) : (
         <div className="flex flex-col items-center justify-center gap-4 rounded-lg border-2 border-dashed border-border py-24 text-center">

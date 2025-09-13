@@ -1,15 +1,16 @@
-import { products } from '@/lib/products';
+import { getProduct, getProducts } from '@/lib/firebase-service';
 import { notFound } from 'next/navigation';
 import ProductDetailsClient from './ProductDetailsClient';
 
 export async function generateStaticParams() {
+  const products = await getProducts();
   return products.map(product => ({
     id: product.id,
   }));
 }
 
-export default function ProductDetailPage({ params }: { params: { id: string } }) {
-  const product = products.find(p => p.id === params.id);
+export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+  const product = await getProduct(params.id);
 
   if (!product) {
     notFound();

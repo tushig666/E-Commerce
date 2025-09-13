@@ -16,16 +16,9 @@ import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart.tsx';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { cn } from '@/lib/utils';
 
 export function CartSheet() {
   const { cart, removeFromCart, updateQuantity, cartCount, cartTotal, isCartMounted } = useCart();
-
-  const getImageUrl = (imageId: string) => {
-    const image = PlaceHolderImages.find(img => img.id === imageId);
-    return image ? image.imageUrl : 'https://placehold.co/900x1200';
-  };
 
   return (
     <Sheet>
@@ -53,7 +46,7 @@ export function CartSheet() {
                   <div key={item.product.id} className="flex gap-4">
                     <div className="relative h-24 w-20 flex-shrink-0 overflow-hidden rounded-md">
                       <Image
-                        src={getImageUrl(item.product.images[0])}
+                        src={item.product.images[0]}
                         alt={item.product.name}
                         fill
                         className="object-cover"

@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { CartItem, Product } from '@/lib/types';
+import { useAuth } from './useAuth';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface CartContextType {
   cart: CartItem[];
@@ -18,23 +21,42 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     setIsMounted(true);
-    const storedCart = localStorage.getItem('maison-cart');
-    if (storedCart) {
-      setCart(JSON.parse(storedCart));
-    }
-  }, []);
+    const loadCart = async () => {
+      if (user) {
+        const cartRef = doc(db, 'carts', user.uid);
+        const cartSnap = await getDoc(cartRef);
+        if (cartSnap.exists()) {
+          setCart(cartSnap.data().items || []);
+        }
+      } else {
+        const storedCart = localStorage.getItem('maison-cart');
+        if (storedCart) {
+          setCart(JSON.parse(storedCart));
+        }
+      }
+    };
+    loadCart();
+  }, [user]);
 
   useEffect(() => {
-    if (isMounted) {
-      localStorage.setItem('maison-cart', JSON.stringify(cart));
-    }
-  }, [cart, isMounted]);
+    if (!isMounted) return;
+    const saveCart = async () => {
+      if (user) {
+        const cartRef = doc(db, 'carts', user.uid);
+        await setDoc(cartRef, { items: cart });
+      } else {
+        localStorage.setItem('maison-cart', JSON.stringify(cart));
+      }
+    };
+    saveCart();
+  }, [cart, user, isMounted]);
 
   const addToCart = useCallback((product: Product, quantity: number = 1) => {
     setCart(prevCart => {

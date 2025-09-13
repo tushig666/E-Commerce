@@ -1,7 +1,9 @@
 import { ProductGrid } from '@/components/products/ProductGrid';
-import { products } from '@/lib/products';
+import { getProducts } from '@/lib/firebase-service';
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const products = await getProducts();
+  
   return (
     <div className="bg-background">
       <div className="container mx-auto px-4 py-16 sm:px-6 sm:py-24 lg:px-8">

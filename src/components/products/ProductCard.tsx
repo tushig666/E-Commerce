@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/hooks/useCart.tsx';
 import type { Product } from '@/lib/types';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 type ProductCardProps = {
   product: Product;
@@ -15,11 +14,6 @@ type ProductCardProps = {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
-
-  const getImageUrl = (imageId: string) => {
-    const image = PlaceHolderImages.find(img => img.id === imageId);
-    return image ? image.imageUrl : 'https://placehold.co/900x1200';
-  }
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -32,7 +26,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <Link href={`/products/${product.id}`}>
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-secondary">
           <Image
-            src={getImageUrl(product.images[0])}
+            src={product.images[0]}
             alt={product.name}
             width={900}
             height={1200}
