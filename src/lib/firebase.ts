@@ -13,10 +13,16 @@ const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID
 };
 
+// Check if all required environment variables are present.
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.projectId;
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// Initialize Firebase only if the config is valid and we are in the browser or it hasn't been initialized yet.
+const app = isConfigValid && !getApps().length ? initializeApp(firebaseConfig) : (getApps().length > 0 ? getApp() : null);
+
+// Conditionally get other Firebase services if the app was initialized.
+const auth = app ? getAuth(app) : null;
+const db = app ? getFirestore(app) : null;
+const storage = app ? getStorage(app) : null;
+
 
 export { app, auth, db, storage };
