@@ -36,6 +36,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error("Error signing out: ", error);
     }
   };
+  
+  if (loading) {
+    return null;
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading, signOut }}>
