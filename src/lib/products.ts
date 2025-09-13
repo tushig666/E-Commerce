@@ -139,7 +139,7 @@ export const staticProducts: Product[] = [
     id: '14',
     name: 'High-Waisted Skinny Trousers',
     description: 'A sleek and modern essential, these skinny trousers are cut from a comfortable stretch-ponte fabric. The high-waisted design creates a flattering, elongated silhouette.',
-    price: 260,
+    price: 740,
     images: ['https://picsum.photos/seed/n1/900/1200', 'https://picsum.photos/seed/n2/900/1200'],
     category: 'Trousers',
     createdAt: new Date().toISOString(),
@@ -148,15 +148,26 @@ export const staticProducts: Product[] = [
 ];
 
 export async function getCollections() {
-    const products = await getProducts();
+    const allProducts = await getProducts();
+    
+    // Shuffle products for variety
+    const shuffled = [...allProducts].sort(() => 0.5 - Math.random());
+    
+    // Get 4 unique products for New Arrivals
+    const newArrivals = shuffled.slice(0, 4);
+    
+    // Get 4 unique products for Curated Classics, different from New Arrivals
+    const remainingProducts = shuffled.slice(4);
+    const curatedClassics = remainingProducts.slice(0, 4);
+
     return [
         {
             name: "New Arrivals",
-            products: products.slice(0, 4),
+            products: newArrivals,
         },
         {
             name: "Curated Classics",
-            products: products.slice(2, 6),
+            products: curatedClassics,
         },
     ]
 }
