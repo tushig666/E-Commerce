@@ -6,7 +6,7 @@ import { Heart, ShoppingBag } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useCart } from '@/hooks/useCart';
+import { useCart } from '@/hooks/useCart.tsx';
 import { useWishlist } from '@/hooks/useWishlist';
 import type { Product } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';

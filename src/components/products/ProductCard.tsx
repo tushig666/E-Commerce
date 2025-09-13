@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useCart } from '@/hooks/useCart';
+import { useCart } from '@/hooks/useCart.tsx';
 import type { Product } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 

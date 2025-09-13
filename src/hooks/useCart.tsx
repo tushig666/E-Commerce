@@ -1,10 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import type { CartItem, Product } from '@/lib/types';
 
-export function useCart() {
+interface CartContextType {
+  cart: CartItem[];
+  addToCart: (product: Product, quantity?: number) => void;
+  removeFromCart: (productId: string) => void;
+  updateQuantity: (productId: string, newQuantity: number) => void;
+  clearCart: () => void;
+  cartCount: number;
+  cartTotal: number;
+  isCartMounted: boolean;
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isMounted, setIsMounted] = useState(false);
   const { toast } = useToast();
@@ -64,5 +77,17 @@ export function useCart() {
   const cartCount = isMounted ? cart.reduce((count, item) => count + item.quantity, 0) : 0;
   const cartTotal = isMounted ? cart.reduce((total, item) => total + item.product.price * item.quantity, 0) : 0;
 
-  return { cart: isMounted ? cart : [], addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal, isCartMounted: isMounted };
+  return (
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal, isCartMounted: isMounted }}>
+      {children}
+    </CartContext.Provider>
+  );
+};
+
+export function useCart() {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
 }

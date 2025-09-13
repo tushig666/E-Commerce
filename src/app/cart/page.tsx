@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Minus, Plus, ShoppingBag, X } from 'lucide-react';
 
-import { useCart } from '@/hooks/useCart';
+import { useCart } from '@/hooks/useCart.tsx';
 import { Button } from '@/components/ui/button';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Separator } from '@/components/ui/separator';

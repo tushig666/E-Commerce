@@ -5,6 +5,7 @@ import { Footer } from '@/components/layout/Footer';
 import AiStylist from '@/components/AiStylist';
 import './globals.css';
 import { AuthProvider } from '@/hooks/useAuth';
+import { CartProvider } from '@/hooks/useCart.tsx';
 
 export const metadata: Metadata = {
   title: 'Maison Éclat',
@@ -25,13 +26,15 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-          <AiStylist />
-          <Toaster />
+          <CartProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+            <AiStylist />
+            <Toaster />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>
