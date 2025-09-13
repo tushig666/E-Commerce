@@ -153,12 +153,30 @@ export async function getCollections() {
     // Shuffle products for variety
     const shuffled = [...allProducts].sort(() => 0.5 - Math.random());
     
+    const collectionSize = 4;
+    
+    // If we don't have enough products for two full collections, split what we have
+    if (shuffled.length < collectionSize * 2) {
+      const midPoint = Math.ceil(shuffled.length / 2);
+      const newArrivals = shuffled.slice(0, midPoint);
+      const curatedClassics = shuffled.slice(midPoint);
+       return [
+        {
+            name: "New Arrivals",
+            products: newArrivals,
+        },
+        {
+            name: "Curated Classics",
+            products: curatedClassics,
+        },
+      ];
+    }
+
     // Get 4 unique products for New Arrivals
-    const newArrivals = shuffled.slice(0, 4);
+    const newArrivals = shuffled.slice(0, collectionSize);
     
     // Get 4 unique products for Curated Classics, different from New Arrivals
-    const remainingProducts = shuffled.slice(4);
-    const curatedClassics = remainingProducts.slice(0, 4);
+    const curatedClassics = shuffled.slice(collectionSize, collectionSize * 2);
 
     return [
         {
