@@ -26,8 +26,7 @@ import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { addProduct, updateProduct, deleteProduct } from '../_actions/product-actions';
 
-// Define a type for the form errors
-type FormErrors = { [key: string]: string[] | undefined };
+type FormErrors = { [key: string]: string[] | undefined } | { _form?: string[] };
 
 interface ActionResult {
     success: boolean;
@@ -64,8 +63,9 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
        let errorMsg = 'An unknown error occurred.';
        if (typeof errors === 'string') {
          errorMsg = errors;
-       } else if (errors && typeof errors !== 'string') {
-         errorMsg = Object.values(errors).flat().join(', ');
+       } else if (errors) {
+         // Handle both field errors and form-level errors
+         errorMsg = Object.values(errors).flat().join(', ') || 'An unknown error occurred.';
        }
         
       toast({
@@ -106,12 +106,14 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
   
   const handleDialogClose = (open: boolean) => {
     if (!open) {
+        setIsDialogOpen(false);
         // Delay resetting the product to allow dialog to close smoothly
         setTimeout(() => {
             setSelectedProduct(null);
-        }, 300);
+        }, 150);
+    } else {
+        setIsDialogOpen(true);
     }
-    setIsDialogOpen(open);
   }
 
   return (
@@ -189,7 +191,8 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
         onOpenChange={(isOpen) => {
             setIsDeleteDialogOpen(isOpen);
             if (!isOpen) {
-                setSelectedProduct(null);
+                // Delay reset for smoother closing animation
+                setTimeout(() => setSelectedProduct(null), 150);
             }
         }}
         onConfirm={handleDeleteConfirm}

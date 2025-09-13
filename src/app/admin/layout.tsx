@@ -1,7 +1,8 @@
+'use client';
+
 import Link from "next/link";
 import { AuthProvider } from "@/hooks/useAuth";
 import { Logo } from "@/components/icons/Logo";
-import { Button } from "@/components/ui/button";
 
 export default function AdminLayout({
   children,

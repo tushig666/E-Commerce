@@ -34,7 +34,6 @@ async function deleteImages(imageUrls: string[]) {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
-            // It's okay if the object doesn't exist, it might have been already deleted.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image: ${url}`, error);
             }
@@ -117,7 +116,6 @@ export async function updateProduct(formData: FormData) {
         createdAt: originalProduct?.createdAt || Timestamp.now(), // Preserve original creation date
     };
 
-    // Use setDoc with merge to create the document if it doesn't exist (handles editing a static product)
     await setDoc(productRef, productData, { merge: true });
 
     revalidatePath('/admin/products');
@@ -151,8 +149,6 @@ export async function deleteProduct(id: string) {
       }
       await deleteDoc(productRef);
     } else {
-        // If it doesn't exist in Firestore, there's nothing to do.
-        // Return success to allow the UI to remove the (likely static) product.
         console.warn(`Attempted to delete a product that does not exist in Firestore: ${id}`);
     }
     
