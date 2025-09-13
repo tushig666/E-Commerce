@@ -32,13 +32,21 @@ export async function getProducts(): Promise<Product[]> {
     const q = query(productsCollection, orderBy('createdAt', 'desc'));
     const productSnapshot = await getDocs(q);
 
-    if (productSnapshot.empty) {
-        console.warn("No products found in Firestore, returning static data.");
-        return staticProducts;
+    const firestoreProducts = productSnapshot.docs.map(mapDocToProduct);
+
+    // If there are very few products in Firestore, merge with static products
+    // to make the store look populated initially.
+    if (firestoreProducts.length < 10) {
+      const firestoreProductIds = new Set(firestoreProducts.map(p => p.id));
+      const additionalStaticProducts = staticProducts.filter(
+        p => !firestoreProductIds.has(p.id)
+      );
+      // Prioritize products from Firestore by putting them first
+      return [...firestoreProducts, ...additionalStaticProducts];
     }
     
-    const productList = productSnapshot.docs.map(mapDocToProduct);
-    return productList;
+    return firestoreProducts;
+
   } catch (error) {
     console.error("Error fetching products from Firestore, returning static data: ", error);
      return staticProducts;
