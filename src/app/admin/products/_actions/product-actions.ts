@@ -17,6 +17,7 @@ const productSchema = z.object({
 async function uploadImages(images: File[]): Promise<string[]> {
   const imageUrls: string[] = [];
   for (const image of images) {
+    if (image.size === 0) continue;
     const storageRef = ref(storage, `products/${Date.now()}-${image.name}`);
     await uploadBytes(storageRef, image);
     const url = await getDownloadURL(storageRef);
@@ -100,7 +101,8 @@ export async function updateProduct(formData: FormData) {
     if (!productSnap.exists()) {
         return { success: false, error: { general: ['Product not found.'] } };
     }
-    const originalImages = productSnap.data().images || [];
+    const originalProduct = productSnap.data();
+    const originalImages = originalProduct.images || [];
 
     // Identify images to delete
     const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
@@ -123,7 +125,7 @@ export async function updateProduct(formData: FormData) {
     revalidatePath('/products');
     revalidatePath('/');
     
-    const createdAt = productSnap.data().createdAt;
+    const createdAt = originalProduct.createdAt;
     
     return { success: true, product: { ...updatedData, id, createdAt: createdAt.toDate().toISOString() } as unknown as Product };
   } catch (e: any) {
