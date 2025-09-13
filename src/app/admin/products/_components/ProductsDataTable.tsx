@@ -3,6 +3,14 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -12,14 +20,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import { ProductDialog } from './ProductDialog';
 import { DeleteProductDialog } from './DeleteProductDialog';
 import type { Product } from '@/lib/types';
@@ -32,7 +32,6 @@ type FormErrors = { [key: string]: string[] | undefined };
 interface ActionResult {
     success: boolean;
     product?: Product;
-    isNew?: boolean;
     error?: FormErrors | string;
 }
 
@@ -50,22 +49,18 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
     const result: ActionResult = await action(productData);
 
     if (result.success && result.product) {
-      if (isEditing) {
-          if (result.isNew) {
-              // This was an edit of a static product, so it was created in the DB.
-              // We should add it to the top of our list, replacing the old static one.
-              setProducts([result.product, ...products.filter(p => p.id !== result.product!.id)]);
-              toast({ title: 'Success', description: 'Product created successfully.' });
+      const updatedProduct = result.product;
+      setProducts(prevProducts => {
+          const productExists = prevProducts.some(p => p.id === updatedProduct.id);
+          if (productExists) {
+              // Update existing product
+              return prevProducts.map(p => p.id === updatedProduct.id ? updatedProduct : p);
           } else {
-              // This was a standard update.
-              setProducts(products.map(p => (p.id === result.product!.id ? result.product! : p)));
-              toast({ title: 'Success', description: 'Product updated successfully.' });
+              // Add new product
+              return [updatedProduct, ...prevProducts];
           }
-      } else {
-        // This was a new product addition.
-        setProducts([result.product, ...products]);
-        toast({ title: 'Success', description: 'Product added successfully.' });
-      }
+      });
+      toast({ title: 'Success', description: `Product ${isEditing ? 'updated' : 'added'} successfully.` });
       setIsDialogOpen(false);
       setEditingProduct(null);
     } else {

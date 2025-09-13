@@ -104,8 +104,7 @@ export async function updateProduct(formData: FormData) {
     const productRef = doc(db, 'products', id);
     const productSnap = await getDoc(productRef);
     
-    const isNewProduct = !productSnap.exists();
-    const originalProduct = productSnap.data();
+    const originalProduct = productSnap.exists() ? productSnap.data() : null;
     const originalImages = originalProduct?.images || [];
 
     const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
@@ -117,10 +116,9 @@ export async function updateProduct(formData: FormData) {
     const productData = { 
         ...validation.data, 
         images: finalImageUrls,
-        createdAt: originalProduct?.createdAt || Timestamp.now(), // Preserve original timestamp or create new one
+        createdAt: originalProduct?.createdAt || Timestamp.now(),
     };
 
-    // Use setDoc instead of updateDoc to handle both creation and update
     await setDoc(productRef, productData, { merge: true });
 
     revalidatePath('/admin/products');
@@ -131,7 +129,7 @@ export async function updateProduct(formData: FormData) {
     const updatedProductSnap = await getDoc(productRef);
     const updatedProduct = mapDocToProduct(updatedProductSnap);
 
-    return { success: true, product: updatedProduct, isNew: isNewProduct };
+    return { success: true, product: updatedProduct };
   } catch (e: any)
    {
     console.error("Error in updateProduct:", e);
@@ -154,7 +152,6 @@ export async function deleteProduct(id: string) {
       }
       await deleteDoc(productRef);
     } else {
-        // If product doesn't exist, we can consider it a success for the client.
         console.warn(`Attempted to delete a product that does not exist: ${id}`);
     }
     
