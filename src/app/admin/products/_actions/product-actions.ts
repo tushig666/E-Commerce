@@ -3,10 +3,8 @@
 import { revalidatePath } from 'next/cache';
 import * as z from 'zod';
 import { db, storage } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp, setDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, deleteDoc, getDoc, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { Product } from '@/lib/types';
-import { mapDocToProduct } from '@/lib/firebase-service';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -18,7 +16,6 @@ const productSchema = z.object({
 async function uploadImages(images: File[]): Promise<string[]> {
   const imageUrls: string[] = [];
   for (const image of images) {
-    // This check is important, although client-side filtering should also happen.
     if (image.size === 0) continue;
     const storageRef = ref(storage, `products/${Date.now()}-${image.name}`);
     await uploadBytes(storageRef, image);
@@ -32,7 +29,6 @@ async function deleteImages(imageUrls: string[]) {
     if (!imageUrls || imageUrls.length === 0) return;
 
     const deletePromises = imageUrls.map(async (url) => {
-        // A more robust check for valid Firebase Storage URLs
         if (!url || typeof url !== 'string' || !url.startsWith('https://firebasestorage.googleapis.com')) {
             console.warn(`Skipping invalid or non-firebase URL for deletion: ${url}`);
             return;
@@ -41,8 +37,6 @@ async function deleteImages(imageUrls: string[]) {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
-            // It's common to try deleting an image that's already gone.
-            // We log other errors but don't re-throw, to not fail the whole operation.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image at ${url}:`, error);
             }
@@ -52,7 +46,6 @@ async function deleteImages(imageUrls: string[]) {
     await Promise.allSettled(deletePromises);
 }
 
-// Unified function for adding and updating
 export async function saveProduct(formData: FormData) {
   const id = formData.get('id') as string | null;
   const rawData = Object.fromEntries(formData);
@@ -70,60 +63,40 @@ export async function saveProduct(formData: FormData) {
   }
 
   try {
-    let finalProductId = id;
     const productDataForDb: any = {
       ...validation.data,
-      updatedAt: Timestamp.now(), // Add/update timestamp
+      updatedAt: Timestamp.now(),
     };
     
-    // Handle image updates
     const newImageUrls = await uploadImages(newImageFiles);
     productDataForDb.images = [...existingImageUrls, ...newImageUrls];
 
     if (id) {
-        // UPDATE existing product
         const productRef = doc(db, 'products', id);
         const productSnap = await getDoc(productRef);
-        const originalImages = productSnap.exists() ? productSnap.data().images || [] : [];
-        
-        const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
-        await deleteImages(imagesToDelete);
-
+        if (productSnap.exists()) {
+            const originalImages = productSnap.data().images || [];
+            const imagesToDelete = originalImages.filter((url: string) => !existingImageUrls.includes(url));
+            await deleteImages(imagesToDelete);
+        }
         await updateDoc(productRef, productDataForDb);
-
     } else {
-        // ADD new product
         productDataForDb.createdAt = Timestamp.now();
-        const docRef = await addDoc(collection(db, 'products'), productDataForDb);
-        finalProductId = docRef.id;
+        await addDoc(collection(db, 'products'), productDataForDb);
     }
 
-    if (!finalProductId) {
-        throw new Error("Could not determine product ID after save operation.");
-    }
-    
-    // Re-fetch the saved product to ensure we have the latest, properly formatted data
-    const savedProductSnap = await getDoc(doc(db, 'products', finalProductId));
-    if (!savedProductSnap.exists()) {
-        throw new Error('Failed to fetch the product after saving.');
-    }
-    const savedProduct = mapDocToProduct(savedProductSnap);
-
-    // Revalidate paths
     revalidatePath('/admin/products');
     revalidatePath('/products');
-    revalidatePath(`/products/${finalProductId}`);
+    if (id) revalidatePath(`/products/${id}`);
     revalidatePath('/');
     
-    return { success: true, product: savedProduct };
+    return { success: true };
 
   } catch (e: any) {
     console.error("Error in saveProduct:", e);
-    // Return a generic error message to the client
     return { success: false, error: { _form: [e.message || 'An unknown server error occurred.'] } };
   }
 }
-
 
 export async function deleteProduct(id: string) {
   if (!id) {

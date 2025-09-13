@@ -25,6 +25,7 @@ import { DeleteProductDialog } from './DeleteProductDialog';
 import type { Product } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { saveProduct, deleteProduct } from '../_actions/product-actions';
+import { getProducts } from '@/lib/firebase-service';
 
 interface ProductsDataTableProps {
   initialProducts: Product[];
@@ -50,23 +51,21 @@ export function ProductsDataTable({ initialProducts }: ProductsDataTableProps) {
   const handleDialogClose = (open: boolean) => {
     setIsDialogOpen(open);
     if (!open) {
-      // Delay resetting to allow for closing animation
       setTimeout(() => setSelectedProduct(null), 150);
     }
   };
 
+  const refreshProducts = async () => {
+    const updatedProducts = await getProducts();
+    setProducts(updatedProducts);
+  };
+
   const handleSaveProduct = async (formData: FormData) => {
-    const isEditing = !!formData.get('id');
     const result = await saveProduct(formData);
 
-    if (result.success && result.product) {
-      const savedProduct = result.product;
-      setProducts(prev => {
-        if (isEditing) {
-          return prev.map(p => p.id === savedProduct.id ? savedProduct : p);
-        }
-        return [savedProduct, ...prev];
-      });
+    if (result.success) {
+      await refreshProducts(); // Re-fetch all products to ensure consistency
+      const isEditing = !!formData.get('id');
       toast({ title: 'Success', description: `Product ${isEditing ? 'updated' : 'added'} successfully.` });
       handleDialogClose(false);
     }
