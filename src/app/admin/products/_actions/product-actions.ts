@@ -40,12 +40,15 @@ async function deleteImages(imageUrls: string[]) {
             // This prevents crashes if an image was already deleted manually or in a previous failed attempt.
             if (error.code !== 'storage/object-not-found') {
                 console.error(`Failed to delete image: ${url}`, error);
-                // Optionally re-throw or handle other critical errors
+                // We don't re-throw here to allow the main operation (e.g., product deletion) to continue
+                // even if one image fails to delete.
             }
         }
     });
 
-    await Promise.all(deletePromises);
+    // We wait for all promises to settle, but we don't want to fail the whole
+    // operation if one image deletion fails.
+    await Promise.allSettled(deletePromises);
 }
 
 export async function addProduct(formData: FormData) {
@@ -71,7 +74,12 @@ export async function addProduct(formData: FormData) {
     };
 
     const docRef = await addDoc(collection(db, 'products'), newProductData);
+    
+    // Fetch the newly created document to get the full product object
     const productSnap = await getDoc(docRef);
+    if (!productSnap.exists()) {
+        throw new Error('Failed to create and then fetch the new product.');
+    }
     const newProduct = mapDocToProduct(productSnap);
 
     revalidatePath('/admin/products');
@@ -120,9 +128,11 @@ export async function updateProduct(formData: FormData) {
     const productData = { 
         ...validation.data, 
         images: finalImageUrls,
+        // Preserve original creation date if it exists
         createdAt: originalProduct?.createdAt || Timestamp.now(),
     };
 
+    // Use set with merge to create the document if it doesn't exist (e.g., editing a static product)
     await setDoc(productRef, productData, { merge: true });
 
     revalidatePath('/admin/products');
