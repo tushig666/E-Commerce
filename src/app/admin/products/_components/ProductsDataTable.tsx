@@ -40,11 +40,10 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   const handleSaveChanges = async (productData: FormData) => {
-    const isEditing = !!editingProduct;
+    const isEditing = !!selectedProduct;
     const action = isEditing ? updateProduct : addProduct;
     const result: ActionResult = await action(productData);
 
@@ -53,43 +52,39 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       setProducts(prevProducts => {
           const productExists = prevProducts.some(p => p.id === updatedProduct.id);
           if (productExists) {
-              // Update existing product
               return prevProducts.map(p => p.id === updatedProduct.id ? updatedProduct : p);
           } else {
-              // Add new product
               return [updatedProduct, ...prevProducts];
           }
       });
       toast({ title: 'Success', description: `Product ${isEditing ? 'updated' : 'added'} successfully.` });
       setIsDialogOpen(false);
-      setEditingProduct(null);
     } else {
        const errors = result.error;
        let errorMsg = 'An unknown error occurred.';
        if (typeof errors === 'string') {
          errorMsg = errors;
-       } else if (errors) {
+       } else if (errors && typeof errors !== 'string') {
          errorMsg = Object.values(errors).flat().join(', ');
        }
         
       toast({
         variant: 'destructive',
-        title: 'Error saving product',
+        title: `Error ${isEditing ? 'updating' : 'adding'} product`,
         description: errorMsg,
       });
     }
   };
 
-  const handleDelete = async () => {
-    if (!deletingProduct) return;
+  const handleDeleteConfirm = async () => {
+    if (!selectedProduct) return;
 
-    const result = await deleteProduct(deletingProduct.id);
+    const result = await deleteProduct(selectedProduct.id);
 
     if (result.success) {
-      setProducts(products.filter(p => p.id !== deletingProduct.id));
+      setProducts(products.filter(p => p.id !== selectedProduct.id));
       toast({ title: 'Success', description: 'Product deleted successfully.' });
       setIsDeleteDialogOpen(false);
-      setDeletingProduct(null);
     } else {
       toast({
         variant: 'destructive',
@@ -99,26 +94,31 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
     }
   };
 
-  const openDialogForEdit = (product: Product) => {
-    setEditingProduct(product);
+  const handleOpenDialog = (product: Product | null) => {
+    setSelectedProduct(product);
     setIsDialogOpen(true);
   };
   
-  const openDialogForAdd = () => {
-    setEditingProduct(null);
-    setIsDialogOpen(true);
-  };
-  
-  const openDeleteDialog = (product: Product) => {
-    setDeletingProduct(product);
+  const handleOpenDeleteDialog = (product: Product) => {
+    setSelectedProduct(product);
     setIsDeleteDialogOpen(true);
   };
+  
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+        // Delay resetting the product to allow dialog to close smoothly
+        setTimeout(() => {
+            setSelectedProduct(null);
+        }, 300);
+    }
+    setIsDialogOpen(open);
+  }
 
   return (
     <>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Products</h1>
-        <Button onClick={openDialogForAdd}>
+        <Button onClick={() => handleOpenDialog(null)}>
           <PlusCircle className="mr-2 h-5 w-5" />
           Add Product
         </Button>
@@ -162,10 +162,10 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onSelect={() => openDialogForEdit(product)}>
+                      <DropdownMenuItem onSelect={() => handleOpenDialog(product)}>
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => openDeleteDialog(product)} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
+                      <DropdownMenuItem onSelect={() => handleOpenDeleteDialog(product)} className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -179,24 +179,21 @@ export function ProductsDataTable({ initialProducts }: { initialProducts: Produc
       
       <ProductDialog
         isOpen={isDialogOpen}
-        onOpenChange={(isOpen) => {
-          setIsDialogOpen(isOpen);
-          if (!isOpen) {
-             // Delay resetting the product to allow dialog to close smoothly
-             setTimeout(() => {
-                setEditingProduct(null);
-            }, 300);
-          }
-        }}
+        onOpenChange={handleDialogClose}
         onSave={handleSaveChanges}
-        product={editingProduct}
+        product={selectedProduct}
       />
       
       <DeleteProductDialog
         isOpen={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={handleDelete}
-        productName={deletingProduct?.name}
+        onOpenChange={(isOpen) => {
+            setIsDeleteDialogOpen(isOpen);
+            if (!isOpen) {
+                setSelectedProduct(null);
+            }
+        }}
+        onConfirm={handleDeleteConfirm}
+        productName={selectedProduct?.name}
       />
     </>
   );

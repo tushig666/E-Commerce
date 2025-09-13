@@ -68,7 +68,6 @@ export async function addProduct(formData: FormData) {
     const productSnap = await getDoc(docRef);
     const newProduct = mapDocToProduct(productSnap);
 
-
     revalidatePath('/admin/products');
     revalidatePath('/products');
     revalidatePath('/');
@@ -103,7 +102,6 @@ export async function updateProduct(formData: FormData) {
   try {
     const productRef = doc(db, 'products', id);
     const productSnap = await getDoc(productRef);
-    
     const originalProduct = productSnap.exists() ? productSnap.data() : null;
     const originalImages = originalProduct?.images || [];
 
@@ -116,9 +114,10 @@ export async function updateProduct(formData: FormData) {
     const productData = { 
         ...validation.data, 
         images: finalImageUrls,
-        createdAt: originalProduct?.createdAt || Timestamp.now(),
+        createdAt: originalProduct?.createdAt || Timestamp.now(), // Preserve original creation date
     };
 
+    // Use setDoc with merge to create the document if it doesn't exist (handles editing a static product)
     await setDoc(productRef, productData, { merge: true });
 
     revalidatePath('/admin/products');
@@ -152,7 +151,9 @@ export async function deleteProduct(id: string) {
       }
       await deleteDoc(productRef);
     } else {
-        console.warn(`Attempted to delete a product that does not exist: ${id}`);
+        // If it doesn't exist in Firestore, there's nothing to do.
+        // Return success to allow the UI to remove the (likely static) product.
+        console.warn(`Attempted to delete a product that does not exist in Firestore: ${id}`);
     }
     
     revalidatePath('/admin/products');
