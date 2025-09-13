@@ -4,6 +4,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import AiStylist from '@/components/AiStylist';
 import './globals.css';
+import { AuthProvider } from '@/hooks/useAuth';
 
 export const metadata: Metadata = {
   title: 'Maison Éclat',
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.Node;
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
@@ -23,13 +24,15 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <div className="flex min-h-screen flex-col">
-          <Header />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
-        <AiStylist />
-        <Toaster />
+        <AuthProvider>
+          <div className="flex min-h-screen flex-col">
+            <Header />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+          <AiStylist />
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );
